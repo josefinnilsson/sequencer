@@ -4,10 +4,10 @@
 [ECLiPSe ≥ 6.1](https://eclipseclp.org/index.html)
 
 ## How to run
-Start eclipse by running `eclipse`, compile the sequencer program by running `compile('sequencer').` and then generate a shuffled list by running `sequence([LIST_OF_TRACKS],X)`.
+Start eclipse by running `eclipse`, compile the sequencer program by running `compile('sequencer').` and then generate a shuffled list by running `generateSequence([LIST_OF_TRACKS],X)` or `sequence(TEXT_FILE,X)` which will write the result to the file `sequence.txt`.
 
 ## Example
-Input `sequence([track(1,"lana del rey",185), track(2, "kent", 180), track(3, "moto boy", 185), track(4, "moto boy", 190)],X).`
+Input `generateSequence([track(1,"lana del rey",185), track(2, "kent", 180), track(3, "moto boy", 185), track(4, "moto boy", 190)],X).`
 will generate four possible sequences:
 ```
 X = [track(2, "kent", 180), track(3, "moto boy", 185), track(1, "lana del rey", 185), track(4, "moto boy", 190)]
