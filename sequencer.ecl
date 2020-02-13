@@ -1,3 +1,6 @@
+:- lib(ic).
+:- lib(ic_search).
+
 consecArtist([]).
 consecArtist([_]).
 consecArtist([X,Y|T]) :-
@@ -11,7 +14,7 @@ bpmDiff([_]).
 bpmDiff([X,Y|T]) :-
   BPM1 is getBPM(X),
   BPM2 is getBPM(Y),
-  abs(BPM1-BPM2) =< 5,
+  abs(BPM1-BPM2) =< 7,
   bpmDiff([Y|T]).
 
 shuffle([],[]).
@@ -28,6 +31,14 @@ generateSequence(L1, L2) :-
   shuffle(L1, L2),
   consecArtist(L2),
   bpmDiff(L2).
+
+sequencer(Tracks) :-
+  shuffle(Tracks, Perm),
+  consecArtist(Perm),
+  bpmDiff(Perm),
+  search(Perm, 3, input_order, indomain, complete, []),
+  writeln(Perm),
+  fail.
 
 readData(_S,end_of_file,[]) :- !.
 readData(S,X,[X|R]) :-
@@ -48,8 +59,8 @@ sequence(Tracks, Seq) :-
   read(S,X),
   readData(S,X,Res),
   close(S),
-  generateSequence(Res,Seq),
-  output_data("sequence.txt",Seq).
+  generateSequence(Res,Seq).
+
 
 
 
