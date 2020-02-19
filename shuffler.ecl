@@ -1,6 +1,19 @@
 :- local struct(track(id, artist, bpm, length)).
 :- lib(ic).
 
+:- local variable(backtracks), variable(deep_fail).
+init_backtracks :-
+        setval(backtracks,0).
+get_backtracks(B) :-
+        getval(backtracks,B).
+count_backtracks :-
+        setval(deep_fail,false).
+count_backtracks :-
+        getval(deep_fail,false),
+        setval(deep_fail,true),
+        incval(backtracks),
+        fail.
+
 getArtist(track(_,A,_,_), A).
 getLength(track(_,_,_,L), L).
 printList(List):-
@@ -39,16 +52,20 @@ artistDistance(Track, Tracks, Distance) :-
 
 shuffler(Tracks, Perm) :-
   cputime(StartTime),
+  init_backtracks,
   shuffle(Tracks, Perm),
 
   ( foreach(T, Perm), param(Perm) do
+    count_backtracks,
     artistDistance(T, Perm, 9)
   ),
 
   search(Perm, 4, first_fail, indomain, complete, []),!,
 
   TimeUsed is cputime-StartTime,
-  printf("Goal took %.2f seconds%n", [TimeUsed]).
+  printf("Goal took %.2f seconds%n", [TimeUsed]),
 
-%% search(Perm,3,input_order,indomain,complete,[]).
+  get_backtracks(B),
+  printf("Solution found after %d backtracks%n", [B]).
+
 %% shuffler([track(1, 'ABBA', 185, 2),track(2, 'Moto Boy', 180, 3),track(3, 'Lana Del Rey', 170, 3),track(4, 'Kent', 175, 4),track(5, 'ABBA', 190, 3)],X).
