@@ -32,15 +32,23 @@ getTail(Elem, [H|T], T) :-
 getTail(Elem, [_|T], Tail) :-
   getTail(Elem, T, Tail).
 
-shuffler(Tracks, Perm) :-
+artistDistance(Track, Tracks, Distance) :-
+  getTail(Track, Tracks, Tail),
+  distance(Track, Tail, Dist),!, %Maybe doesn't compute correct value
+  Dist $>= Distance.
 
+shuffler(Tracks, Perm) :-
+  cputime(StartTime),
   shuffle(Tracks, Perm),
 
   ( foreach(T, Perm), param(Perm) do
-    getTail(T, Perm, Tail),
-    distance(T, Tail, Dist),!, %Maybe doesn't compute correct value
-    Dist $>= 9
-  ).
+    artistDistance(T, Perm, 9)
+  ),
+
+  search(Perm, 4, first_fail, indomain, complete, []),!,
+
+  TimeUsed is cputime-StartTime,
+  printf("Goal took %.2f seconds%n", [TimeUsed]).
 
 %% search(Perm,3,input_order,indomain,complete,[]).
 %% shuffler([track(1, 'ABBA', 185, 2),track(2, 'Moto Boy', 180, 3),track(3, 'Lana Del Rey', 170, 3),track(4, 'Kent', 175, 4),track(5, 'ABBA', 190, 3)],X).
