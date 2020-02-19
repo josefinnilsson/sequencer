@@ -1,6 +1,7 @@
 :- local struct(track(id, artist, bpm, length)).
 :- local struct(position(index, track)).
 :- lib(ic).
+:- lib(ic_global).
 
 :- local variable(backtracks), variable(deep_fail).
 init_backtracks :-
@@ -17,12 +18,6 @@ count_backtracks :-
 
 getArtist(track(_,A,_,_), A).
 getLength(track(_,_,_,L), L).
-printList(List):-
-  (
-    foreach(E, List) do
-    write(E), write(", ")
-  ),
-  writeln("---").
 
 distance(Track, [H|_], 0):-
   A1 is getArtist(Track),
@@ -49,7 +44,7 @@ getTail(Elem, [_|T], Tail) :-
 artistDistance(Track, Tracks, Distance) :-
   getTail(Track, Tracks, Tail),
   distance(Track, Tail, Dist),!, %Maybe doesn't compute correct value
-  Dist $>= Distance.
+  Dist #>= Distance.
 
 getIndex(position(I,_), I).
 
@@ -58,26 +53,40 @@ getIndices(List, Indices) :-
     getIndex(L, I)
   ).
 
+getTrack(position(_,T), T).
+
+getTracks(List, Tracks) :-
+  ( foreach(L, List), foreach(T, Tracks) do
+    getTrack(L, T)
+  ).
+
 
 shuffler(Tracks, Perm) :-
   length(Tracks, N),
   length(Perm, N),
+  length(Indices, N),
 
-  (foreach(P, Perm), foreach(T, Tracks), param(N) do
-    I #:: 0..N,
+  (foreach(I, Indices), param(N) do
+    I #:: 0..N
+  ),
+
+  ic_global:alldifferent(Indices),
+
+  (foreach(P, Perm), foreach(T, Tracks), foreach(I, Indices) do
+    indomain(I),
     P = position{index: I, track:T}
   ),
 
-  getIndices(Perm, Indices),
-  alldifferent(Indices),
+  sort(1, <, Perm, Sorted),
+  getTracks(Sorted, SortedTracks),
 
-  ( foreach(T, Perm), param(Perm) do
+  ( foreach(T, SortedTracks), param(SortedTracks) do
     count_backtracks,
-    artistDistance(T, Perm, 9)
+    artistDistance(T, SortedTracks, 5)
   ),
 
-  search(Perm, 1, input_order, indomain, complete, []),!
-  .
+  term_variables(Perm ,Vars),
+  search(Vars, 1, first_fail, indomain, bbs(20), []),!.
 
 run(Tracks, Perm) :-
   cputime(StartTime),
@@ -91,4 +100,4 @@ run(Tracks, Perm) :-
   get_backtracks(B),
   printf("Solution found after %d backtracks%n", [B]).
 
-%% shuffler([track(1, 'ABBA', 185, 2),track(2, 'Moto Boy', 180, 3),track(3, 'Lana Del Rey', 170, 3),track(4, 'Kent', 175, 4),track(5, 'ABBA', 190, 3)],X).
+%% run([track(1, 'ABBA', 185, 2),track(2, 'Moto Boy', 180, 3),track(3, 'Lana Del Rey', 170, 3),track(4, 'Kent', 175, 4),track(5, 'ABBA', 190, 3)],X).
