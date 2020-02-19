@@ -1,4 +1,5 @@
 :- local struct(track(id, artist, bpm, length)).
+:- local struct(position(index, track)).
 :- lib(ic).
 
 :- local variable(backtracks), variable(deep_fail).
@@ -50,17 +51,39 @@ artistDistance(Track, Tracks, Distance) :-
   distance(Track, Tail, Dist),!, %Maybe doesn't compute correct value
   Dist $>= Distance.
 
+getIndex(position(I,_), I).
+
+getIndices(List, Indices) :-
+  ( foreach(L, List), foreach(I, Indices) do
+    getIndex(L, I)
+  ).
+
+
 shuffler(Tracks, Perm) :-
-  cputime(StartTime),
-  init_backtracks,
-  shuffle(Tracks, Perm),
+  length(Tracks, N),
+  length(Perm, N),
+
+  (foreach(P, Perm), foreach(T, Tracks), param(N) do
+    I #:: 0..N,
+    P = position{index: I, track:T}
+  ),
+
+  getIndices(Perm, Indices),
+  alldifferent(Indices),
 
   ( foreach(T, Perm), param(Perm) do
     count_backtracks,
     artistDistance(T, Perm, 9)
   ),
 
-  search(Perm, 4, first_fail, indomain, complete, []),!,
+  search(Perm, 1, input_order, indomain, complete, []),!
+  .
+
+run(Tracks, Perm) :-
+  cputime(StartTime),
+  init_backtracks,
+
+  shuffler(Tracks, Perm),
 
   TimeUsed is cputime-StartTime,
   printf("Goal took %.2f seconds%n", [TimeUsed]),
