@@ -1,11 +1,13 @@
 const ARTISTS = ["lana del rey", "toto", "moto boy", "khalid", "ariana grande", "the xx", "lorde", "bon iver", "billie eilish", "kaytranada"]
 const BPM_UPPER = 125
 const BPM_LOWER = 140
+const MINUTES = [2, 3, 4, 5]
 
 const generateTrack = i => {
   const artist = ARTISTS[Math.floor(Math.random()*ARTISTS.length)]
   const bpm = Math.floor(Math.random() * (BPM_UPPER - BPM_LOWER)) + BPM_LOWER
-  return 'track(' + i + ',"' + artist + '",' + bpm + ')'
+  const length = MINUTES[Math.floor(Math.random()*MINUTES.length)]
+  return 'track(' + i + ',"' + artist + '",' + bpm + "," + length + ')'
 }
 
 const generateTracks = amount => {
@@ -16,9 +18,9 @@ const generateTracks = amount => {
       tracks += ','
     }
   }
-  tracks += '].'
+  tracks += ']'
   return tracks
 }
 
 
-console.log(generateTracks(20))
+console.log(generateTracks(14))
