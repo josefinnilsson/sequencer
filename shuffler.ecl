@@ -2,8 +2,15 @@
 :- local struct(position(index, track)).
 :- lib(ic).
 :- lib(ic_global).
+:- lib(lists).
+:- lib(repair).
+
+%----------------------------------------------------------------------
+% Counting backtracks
+%----------------------------------------------------------------------
 
 :- local variable(backtracks), variable(deep_fail).
+
 init_backtracks :-
         setval(backtracks,0).
 get_backtracks(B) :-
@@ -16,35 +23,20 @@ count_backtracks :-
         incval(backtracks),
         fail.
 
+%----------------------------------------------------------------------
+% Helper functions
+%----------------------------------------------------------------------
+
 getArtist(track(_,A,_,_), A).
+
 getLength(track(_,_,_,L), L).
 
-distance(Track, [H|_], 0):-
-  A1 is getArtist(Track),
-  A2 is getArtist(H),
-  A1 == A2.
-distance(_,[],99999999). %Check if MAXINT exist
-distance(Track, [_|T], Distance):-
-  distance(Track, T, Length),
-  L is getLength(Track),
-  Distance is L + Length.
-
-shuffle([],[]).
-shuffle(L, [H|T]) :-
-  append(V,[H|U],L),
-  append(V,U,W),
-  shuffle(W,T).
-
 getTail(_, [], []).
+
 getTail(Elem, [H|T], T) :-
   Elem == H.
 getTail(Elem, [_|T], Tail) :-
   getTail(Elem, T, Tail).
-
-artistDistance(Track, Tracks, Distance) :-
-  getTail(Track, Tracks, Tail),
-  distance(Track, Tail, Dist),!, %Maybe doesn't compute correct value
-  Dist #>= Distance.
 
 getIndex(position(I,_), I).
 
@@ -60,6 +52,44 @@ getTracks(List, Tracks) :-
     getTrack(L, T)
   ).
 
+%----------------------------------------------------------------------
+% Constraints
+%----------------------------------------------------------------------
+distance(Track, [H|_], 0):-
+  A1 is getArtist(Track),
+  A2 is getArtist(H),
+  A1 == A2.
+
+distance(_,[],99999999).
+
+distance(Track, [_|T], Distance):-
+  distance(Track, T, Length),
+  L is getLength(Track),
+  Distance is L + Length.
+
+artistDistance(Track, Tracks, Distance, B) :- %Should be true directly when Dist >= Distance
+  getTail(Track, Tracks, Tail),
+  distance(Track, Tail, Dist),!,
+  Dist #>= Distance r_conflict cs,
+  B tent_is Dist.
+
+%----------------------------------------------------------------------
+% Cost calculator
+%----------------------------------------------------------------------
+cost(Variable, Sequence, B) :-
+  artistDistance(Variable, Sequence, 8, B).
+
+totalCost(Sequence, BSum) :-
+  BSum tent_is 0,
+  ( foreach(Variable, Sequence), param(Sequence) do
+    cost(Variable, Sequence, B),
+    BSum tent_get Current,
+    BSum tent_is Current + B
+  ).
+
+%----------------------------------------------------------------------
+% Sequencer
+%----------------------------------------------------------------------
 
 shuffler(Tracks, Perm) :-
   length(Tracks, N),
@@ -67,37 +97,60 @@ shuffler(Tracks, Perm) :-
   length(Indices, N),
 
   (foreach(I, Indices), param(N) do
-    I #:: 0..N
+    I #:: 0..N % Choose random index in playback sequence
   ),
 
   ic_global:alldifferent(Indices),
 
   (foreach(P, Perm), foreach(T, Tracks), foreach(I, Indices) do
     indomain(I),
-    P = position{index: I, track:T}
+    P = position{index: I, track:T} % Connect playback index with track
   ),
 
-  sort(1, <, Perm, Sorted),
+  sort(1, <, Perm, Sorted), % Get playback order
   getTracks(Sorted, SortedTracks),
 
-  ( foreach(T, SortedTracks), param(SortedTracks) do
-    count_backtracks,
-    artistDistance(T, SortedTracks, 5)
-  ),
+  totalCost(SortedTracks, BSum),
+  hill_climb(Indices, BSum).
 
-  term_variables(Perm ,Vars),
-  search(Vars, 1, first_fail, indomain, bbs(20), []),!.
+hill_climb(Vars, BSum):-
+  conflict_constraints(cs, List),
+  BSum tent_get Satisfied,
+  ( List=[] ->
+    set_to_tent(Indices)
+    ;
+    select_vars(List, Var1, Var2),
+    swap(Var1, Var2),
+    tent_get(BSum) > Satisfied ->
+      hill_climb(Vars, BSum)
+    ;
+      writeln("local optimum")
+
+  ).
+
+  set_to_tent(Term) :-
+   Term tent_get Tent,
+   Term = Tent.
+
+select_var(List, Var) :-
+  member(Constraint, List),
+  term_variables(Constraint, Vars),
+  member(Var, Vars).
+
+
+
+%----------------------------------------------------------------------
+% Entry Point
+%----------------------------------------------------------------------
 
 run(Tracks, Perm) :-
   cputime(StartTime),
   init_backtracks,
 
-  shuffler(Tracks, Perm),
+  shuffler(Tracks, Perm),!,
 
   TimeUsed is cputime-StartTime,
   printf("Goal took %.2f seconds%n", [TimeUsed]),
 
   get_backtracks(B),
   printf("Solution found after %d backtracks%n", [B]).
-
-%% run([track(1, 'ABBA', 185, 2),track(2, 'Moto Boy', 180, 3),track(3, 'Lana Del Rey', 170, 3),track(4, 'Kent', 175, 4),track(5, 'ABBA', 190, 3)],X).
