@@ -143,28 +143,26 @@ shuffler(Tracks, Perm) :-
   getTracks(Sorted, SortedTracks),
 
   totalCost(SortedTracks, BSum),
-  hill_climb(Indices, BSum).
+  ( foreach(X, [1,2,3]), param(SortedTracks, BSum, Indices) do
+    conflict_constraints(cs, List),
+    select_constraint_var(List, Var1),
+    select_var(List, Var1, Var2),
+    swap(Indices, Var1, Var2, Swapped),
 
-hill_climb(Vars, BSum):-
-  conflict_constraints(cs, List),
-  BSum tent_get Satisfied,
-  ( List=[] ->
-    set_to_tent(Indices)
-    ;
-    select_vars(List, Var1, Var2),
-    swap(Var1, Var2),
-    tent_get(BSum) > Satisfied ->
-      hill_climb(Vars, BSum)
-    ;
-      writeln("local optimum")
-
+    % Get Tracks according to new playback order
+    % calculate total cost for new playback
+    % If cost is lower, set playback order to the new one
   ).
 
-  set_to_tent(Term) :-
-   Term tent_get Tent,
-   Term = Tent.
+set_to_tent(Term) :-
+  Term tent_get Tent,
+  Term = Tent.
 
-select_var(List, Var) :-
+select_var(List, CVar, Var) :-
+  member(Var, List),
+  CVar \== Var.
+
+select_constraint_var(List, Var) :-
   member(Constraint, List),
   term_variables(Constraint, Vars),
   member(Var, Vars).
