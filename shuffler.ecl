@@ -1,27 +1,10 @@
 :- local struct(track(id, artist, bpm, length)).
 :- local struct(position(index, track)).
+:- local struct(swap(first, second)).
 :- lib(ic).
 :- lib(ic_global).
 :- lib(lists).
 :- lib(repair).
-
-%----------------------------------------------------------------------
-% Counting backtracks
-%----------------------------------------------------------------------
-
-:- local variable(backtracks), variable(deep_fail).
-
-init_backtracks :-
-        setval(backtracks,0).
-get_backtracks(B) :-
-        getval(backtracks,B).
-count_backtracks :-
-        setval(deep_fail,false).
-count_backtracks :-
-        getval(deep_fail,false),
-        setval(deep_fail,true),
-        incval(backtracks),
-        fail.
 
 %----------------------------------------------------------------------
 % Helper functions
@@ -88,6 +71,20 @@ swapHelp([H|T],Var1,Var2,Swapped, Final):-
 
 swap(List, Var1, Var2, X) :- swapHelp(List, Var1, Var2, [], X),!.
 
+get_tentative_vals(List, Res) :-
+  (foreach(R, Res), foreach(I, List) do
+    I tent_get R
+  ).
+
+getPlayback(Indices, Tracks, Playback) :-
+  (foreach(P, Playback), foreach(T, Tracks), foreach(I, Indices) do
+    P = position{index: I, track: T}
+  ).
+
+tracksFromPlayback(Playback, Tracks) :-
+  sort(1, <, Playback, Sorted),
+  getTracks(Sorted, Tracks).
+
 %----------------------------------------------------------------------
 % Constraints
 %----------------------------------------------------------------------
@@ -103,59 +100,78 @@ distance(Track, [_|T], Distance):-
   L is getLength(Track),
   Distance is L + Length.
 
-artistDistance(Track, Tracks, Distance, B) :- %Should be true directly when Dist >= Distance
-  getTail(Track, Tracks, Tail),
-  distance(Track, Tail, Dist),!,
-  Dist #>= Distance r_conflict cs,
-  B tent_is Dist.
+artistConstraint(Track, Tracks, ConstraintDistance, Opt) :-
+   getTail(Track, Tracks, Tail),
+   distance(Track, Tail, Distance),!,
+   Distance >= ConstraintDistance r_conflict arcons,
+   Opt tent_is Distance.
 
 %----------------------------------------------------------------------
-% Cost calculator
-%----------------------------------------------------------------------
-cost(Variable, Sequence, B) :-
-  artistDistance(Variable, Sequence, 8, B).
-
-totalCost(Sequence, BSum) :-
-  BSum tent_is 0,
-  ( foreach(Variable, Sequence), param(Sequence) do
-    cost(Variable, Sequence, B),
-    BSum tent_get Current,
-    BSum tent_is Current + B
-  ).
-
-%----------------------------------------------------------------------
-% Sequencer
+% Shuffler
 %----------------------------------------------------------------------
 
-shuffler(Tracks, Perm) :-
+shuffler(Tracks, PlaybackFinal):-
   length(Tracks, N),
-  length(Perm, N),
+  length(Playback, N),
   length(Indices, N),
 
-  (foreach(I, Indices), param(N) do
-    I #:: 0..N % Choose random index in playback sequence
+  tent_init(Indices),
+
+  getPlayback(Indices, Tracks, Playback),
+
+  tracksFromPlayback(Playback, SortedTracks),
+  defineConstraints(SortedTracks, OptSum),
+
+  hill_climb(Indices, SortedTracks, BestOrder, 0, Final),
+
+  get_tentative_vals(Final, Positions),
+  getPlayback(Final, Tracks, PlaybackFinal).
+
+defineConstraints(Tracks, OptSum) :-
+  ( foreach(T, Tracks), foreach(O, Opts), param(Tracks) do
+    artistConstraint(T, Tracks, 3, O)
   ),
+  sumlist(Opts, OptsSum),
+  OptSum tent_is OptsSum
+  .
 
-  ic_global:alldifferent(Indices),
+tent_init(List) :-
+  ( foreach(Var,List),foreach(I, [0,1,2,3,4,5]) do %TODO: Dynamic length
+    Var tent_set I
+  ).
 
-  (foreach(P, Perm), foreach(T, Tracks), foreach(I, Indices) do
-    indomain(I),
+makeSwap(Indices, Tracks, SwappedFinal) :- % Här inne ska OptSum uppdateras
+  get_tentative_vals(Indices, Res),
+  select_constraint_var(Res, Val1),
+  select_var(Res, Val1, Val2),
+  swap(Res, Val1, Val2, SwappedFinal),
+
+  (foreach(P, Playback), foreach(T, Tracks), foreach(I, SwappedFinal) do
     P = position{index: I, track:T} % Connect playback index with track
   ),
 
-  sort(1, <, Perm, Sorted), % Get playback order
-  getTracks(Sorted, SortedTracks),
+  tracksFromPlayback(Playback, SortedTracks),
 
-  totalCost(SortedTracks, BSum),
-  ( foreach(X, [1,2,3]), param(SortedTracks, BSum, Indices) do
-    conflict_constraints(cs, List),
-    select_constraint_var(List, Var1),
-    select_var(List, Var1, Var2),
-    swap(Indices, Var1, Var2, Swapped),
+  defineConstraints(SortedTracks, OptSum)
+.
 
-    % Get Tracks according to new playback order
-    % calculate total cost for new playback
-    % If cost is lower, set playback order to the new one
+hill_climb([],_,Indices,_,Indices).
+hill_climb(Indices, Tracks, BestOrder, Counter, FinalPlayback) :-
+  (Counter >= 5 ->
+    hill_climb([],_,Indices,_, FinalPlayback)
+  ;
+    (conflict_constraints(arcons, Conflict),
+    length(Conflict, Old),
+    makeSwap(Indices, Tracks, Swapped),
+    conflict_constraints(arcons, NewConflict),
+    length(NewConflict, NewVal),
+    (NewVal < Old -> % This doesn't work as constraints get appended, arcons would have to be cleared
+      hill_climb([],_,_,_,_,FinalPlayback)
+    ;
+      NewCounter is Counter + 1,
+      hill_climb(Swapped, Tracks, Indices, NewCounter, FinalPlayback)
+      )
+    )
   ).
 
 set_to_tent(Term) :-
@@ -167,11 +183,7 @@ select_var(List, CVar, Var) :-
   CVar \== Var.
 
 select_constraint_var(List, Var) :-
-  member(Constraint, List),
-  term_variables(Constraint, Vars),
-  member(Var, Vars).
-
-
+  member(Var, List).
 
 %----------------------------------------------------------------------
 % Entry Point
@@ -179,12 +191,8 @@ select_constraint_var(List, Var) :-
 
 run(Tracks, Perm) :-
   cputime(StartTime),
-  init_backtracks,
 
   shuffler(Tracks, Perm),!,
 
   TimeUsed is cputime-StartTime,
-  printf("Goal took %.2f seconds%n", [TimeUsed]),
-
-  get_backtracks(B),
-  printf("Solution found after %d backtracks%n", [B]).
+  printf("Goal took %.2f seconds%n", [TimeUsed]).
