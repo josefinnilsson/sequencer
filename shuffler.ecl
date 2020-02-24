@@ -52,7 +52,11 @@ getTracks(List, Tracks) :-
     getTrack(L, T)
   ).
 
-swapHelp([],_,_,Swapped,X).
+add(X,[],[X]).
+add(X,[Y|Tail],[Y|Tail1]):-
+  add(X,Tail,Tail1).
+
+swapHelp([],_,_,_,_).
 
 swapHelp([X|[]],Var1,Var2,Swapped, NewSwapped):-
   X == Var1,
@@ -64,7 +68,7 @@ swapHelp([X|[]],Var1,Var2,Swapped, NewSwapped):-
   add(Var1, Swapped, NewSwapped),
   swapHelp([], Var1, Var2, Swapped, NewSwapped).
 
-swapHelp([X|[]],_,_,Swapped, NewSwapped):-
+swapHelp([X|[]],Var1,Var2,Swapped, NewSwapped):-
   add(X, Swapped, NewSwapped),
   swapHelp([], Var1, Var2, Swapped, NewSwapped).
 
@@ -79,7 +83,7 @@ swapHelp([H|T], Var1, Var2, Swapped, Final):-
   swapHelp(T, Var1, Var2, NewSwapped, Final).
 
 swapHelp([H|T],Var1,Var2,Swapped, Final):-
-  add(H,Swapped, NewSwapped),!,
+  add(H,Swapped, NewSwapped),
   swapHelp(T, Var1, Var2, NewSwapped, Final).
 
 swap(List, Var1, Var2, X) :- swapHelp(List, Var1, Var2, [], X),!.
