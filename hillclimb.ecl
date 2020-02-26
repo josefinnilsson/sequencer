@@ -50,13 +50,10 @@ calculate_distances(Indices, Tracks, Distances) :-
       distance(P, PlaybackTail, Next, Distance), % Get the distance to the next track for same artist as well as that position
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
-        get_tent_index(P, I1),
-        get_tent_index(Next, I2),
         threshold_diff(Distance, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
-        D = artist_distance{position1: I1, position2: I2, distance: Diff}
+        D = artist_distance{position1: P, position2: Next, distance: Diff}
       ;
-        get_tent_index(P, I1),
-        D = artist_distance{position1: I1, position2: -1, distance: 0}
+        D = artist_distance{position1: P, position2: -1, distance: 0}
       )
   ).
 
