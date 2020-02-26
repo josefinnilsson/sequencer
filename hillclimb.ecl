@@ -6,6 +6,10 @@
 :- local struct(position(index, track)).
 :- local struct(artist_distance(position1, position2, distance)).
 
+%----------------------------------------------------------------------
+% Get Functions
+%----------------------------------------------------------------------
+
 get_index(position(I,_),I).
 get_track(position(_,T),T).
 
@@ -18,15 +22,65 @@ get_tent_index(Position, Tent) :-
   get_index(Position, Index),
   Index tent_get Tent.
 
+%----------------------------------------------------------------------
+% Shuffler
+%----------------------------------------------------------------------
+
 shuffler(Tracks) :-
   length(Tracks, N),
   length(Indices, N), % len(Tracks) is equal to len(Indices)
   tent_init(Indices), % set initial values for all index
 
-  constraint_setup(Indices, Tracks, BSum, Distances). % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
+  constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
+  hill_climb(Indices, BSum).
 
-  %% hill_climb(Indices, BSum).
+%----------------------------------------------------------------------
+% Hill Climbing
+%----------------------------------------------------------------------
+hill_climb(Indices, BSum) :-
+  conflict_constraints(cs, List),
+  BSum tent_get OldCost,
+  ( List=[] ->
+    get_final_playback(Indices),
+    writeln("DONE"),
+    print_list(Indices)
+  ;
+    select_var(List, Var1),
+    select_other_var(Indices, Var1, Var2),
+    swap(Var1, Var2),
+    BSum tent_get NewCost,
+    write("New cost "), writeln(NewCost),
+    ( NewCost < OldCost ->
+      hill_climb(Indices, BSum)
+    ;
+      writeln("Local Optimum")
+    )
+  ).
 
+select_var(List, Index) :-
+  member(Constraint, List), % Choose one of the conflicting constraints
+  arg(1, Constraint, Res),
+  arg(2, Res, ArtistDistance),
+  arg(1, ArtistDistance, Var),
+  arg(1, Var, Index). % Get the first index involved in the constraint
+
+select_other_var(Indices, Var1, Var2) :-
+  member(Var2, Indices),
+  Var1 \== Var2. % Choose a random index that isn't the constraint index
+
+swap(Var1, Var2) :-
+  Var1 tent_get Value1,
+  Var2 tent_get Value2,
+  Var1 tent_set Value2,
+  Var2 tent_set Value1.
+
+get_final_playback(List) :-
+  List tent_get Tent,
+  List = Tent.
+
+%----------------------------------------------------------------------
+% Constraint Setup
+%----------------------------------------------------------------------
 tent_init(List) :-
   length(List, N),
   ( for(I, 0, N-1), foreach(Var, List) do
@@ -42,6 +96,11 @@ constraint_setup(Indices, Tracks, BSum, Distances) :-
   ),
   sumlist(AllBs, Sum),
   BSum tent_is Sum.
+
+
+%----------------------------------------------------------------------
+% Distance Calculation
+%----------------------------------------------------------------------
 
 calculate_distances(Indices, Tracks, Distances) :-
   get_playback(Indices, Tracks, Playback),
@@ -76,6 +135,10 @@ distance(Position, [_|T], Next, Distance) :-
   get_duration(Track, D),
 
   Distance is D + Length.
+
+%----------------------------------------------------------------------
+% Help Functions
+%----------------------------------------------------------------------
 
 get_playback(Indices, Tracks, SortedPlayback) :-
   (foreach(P, Playback), foreach(I, Indices), foreach(T, Tracks) do
