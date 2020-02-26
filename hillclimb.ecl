@@ -37,7 +37,7 @@ constraint_setup(Indices, Tracks, BSum, Distances) :-
   calculate_distances(Indices, Tracks, Distances),
   ( foreach(Dist, Distances), foreach(B, AllBs) do
     get_distance(Dist, D),
-    D $= 0 r_conflict cs, % Det här vill vi inte ha
+    arg(distance of artist_distance, Dist) $= 0 r_conflict cs,
     B tent_is D
   ),
   sumlist(AllBs, Sum),
