@@ -40,6 +40,7 @@ shuffler(Tracks) :-
 hill_climb(Indices, BSum) :-
   conflict_constraints(cs, List),
   BSum tent_get OldCost,
+  write("old cost"), writeln(OldCost),
   ( List=[] ->
     get_final_playback(Indices),
     writeln("DONE"),
@@ -92,10 +93,10 @@ constraint_setup(Indices, Tracks, BSum, Distances) :-
   ( foreach(Dist, Distances), foreach(B, AllBs) do
     get_distance(Dist, D),
     arg(distance of artist_distance, Dist) $= 0 r_conflict cs,
-    B tent_is D
+    tent_call([Dist], BDist, BDist is arg(distance of artist_distance, Dist)),
+    B tent_is BDist
   ),
-  sumlist(AllBs, Sum),
-  BSum tent_is Sum.
+  tent_call([AllBs], BSum, BSum is sumlist(AllBs)).
 
 
 %----------------------------------------------------------------------
