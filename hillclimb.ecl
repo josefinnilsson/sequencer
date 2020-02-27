@@ -25,6 +25,7 @@ get_id_from_position(position(_, track(ID, _, _), _), ID).
 get_tent_index(Position, Tent) :-
   get_index(Position, Index),
   Index tent_get Tent.
+get_tent_index(position(-1,_,_),-1).
 
 %----------------------------------------------------------------------
 % Shuffler
@@ -42,23 +43,24 @@ shuffler(Tracks) :-
 % Hill Climbing
 %----------------------------------------------------------------------
 hill_climb(Indices, Distances, Tracks, BSum) :-
+  writeln("--- DISTANCES ---"),
+  print_list(Distances),
   conflict_constraints(cs, List),
+  writeln("--- CONSTRAINTS ---"),
+  print_list(List),
   BSum tent_get OldCost,
-  write("old cost"), writeln(OldCost),
   ( List=[] ->
-    get_final_playback(Indices)
-    writeln("DONE"),
+    get_final_playback(Indices),
     print_list(Indices)
   ;
     select_var(List, Var1),
     select_other_var(Indices, Var1, Var2),
-
     swap(Var1, Var2),
+
     get_distances(Distances, Var1, Var2, FilteredDistances),
     update_distances(Indices, Tracks, FilteredDistances),
 
     BSum tent_get NewCost,
-    write("New cost "), writeln(NewCost),
     ( NewCost < OldCost ->
       hill_climb(Indices, Distances, Tracks, BSum)
     ;
@@ -117,11 +119,12 @@ calculate_distances(Indices, Tracks, Distances) :-
       distance(P, PlaybackTail, Next, Distance), % Get the distance to the next track for same artist as well as that position
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
-        threshold_diff(Distance, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+        threshold_diff(Distance, 12, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
         TentDiff tent_set Diff,
         D = artist_distance{position1: P, position2: Next, distance: TentDiff}
       ;
-        D = artist_distance{position1: P, position2: -1, distance: 0}
+        NewDist tent_set 0,
+        D = artist_distance{position1: P, position2: Next, distance: NewDist} % This causes problems
       )
   ).
 
@@ -147,23 +150,25 @@ distance(Position, [_|T], Next, Distance) :-
 
 get_distances(Distances, Var1, Var2, [AD1,AD2]) :- % Get artist_distance where artist is related to Var1 or Var2
   get_artist_distance_from_index(Distances, Var1, AD1),
-  get_artist_distance_from_index(Distances, Var2, AD2).
+  get_artist_distance_from_index(Distances, Var2, AD2)
+  .
 
 update_distances(Indices, Tracks, FilteredDistances) :-
   get_playback(Indices, Tracks, Playback),
   ( foreach(D, FilteredDistances), param(Playback) do
-    get_first_position(D, Position),
+    get_smallest_position(D, Position),
     recalculate(Position, Playback, Distance),
     get_distance(D, Current),
     Current tent_set Distance
   ).
 
+recalculate(-1, _, 0).
 recalculate(Position, Playback, Distance) :-
   playback_tail(Position, Playback, PlaybackTail),
   distance(Position, PlaybackTail, Next, Dist),
   get_tent_index(Next, NextPosition),
   ( NextPosition > -1 -> % Another track from the same artist was found
-      threshold_diff(Dist, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+      threshold_diff(Dist, 12, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
       Distance = Diff
     ;
       Distance = 0
@@ -172,6 +177,21 @@ recalculate(Position, Playback, Distance) :-
 %----------------------------------------------------------------------
 % Helper Functions
 %----------------------------------------------------------------------
+
+get_smallest_position(artist_distance(_,-1,_), -1).
+
+get_smallest_position(ArtistDistance, Position) :-
+  get_first_position(ArtistDistance, First),
+  get_index(First, FirstI),
+  get_second_position(ArtistDistance, Second),
+  get_index(Second, SecondI),
+  FirstI tent_get FirstT,
+  SecondI tent_get SecondT,
+  (FirstT =< SecondT ->
+    Position = First
+    ;
+    Position = Second
+  ).
 
 get_playback(Indices, Tracks, SortedPlayback) :-
   (foreach(P, Playback), foreach(I, Indices), foreach(T, Tracks) do
@@ -210,4 +230,8 @@ get_artist_distance_from_index([H|_], Var, H) :-
 
 get_artist_distance_from_index([_|T], Var, AD) :-
   get_artist_distance_from_index(T, Var, AD).
+
+add(X,[],[X]).
+add(X,[Y|Tail],[Y|Tail1]):-
+  add(X,Tail,Tail1).
 
