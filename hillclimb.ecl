@@ -3,20 +3,24 @@
 :- lib(ic_global).
 
 :- local struct(track(id, artist, duration)).
-:- local struct(position(index, track)).
+:- local struct(position(index, track, tent)).
 :- local struct(artist_distance(position1, position2, distance)).
 
 %----------------------------------------------------------------------
 % Get Functions
 %----------------------------------------------------------------------
 
-get_index(position(I,_),I).
-get_track(position(_,T),T).
+get_index(position(I,_,_),I).
+get_track(position(_,T,_),T).
 
 get_duration(track(_,_,D),D).
 get_artist(track(_,A,_),A).
 
 get_distance(artist_distance(_,_,D),D).
+get_first_position(artist_distance(P,_,_),P).
+get_second_position(artist_distance(_,P,_),P).
+
+get_id_from_position(position(_, track(ID, _, _), _), ID).
 
 get_tent_index(Position, Tent) :-
   get_index(Position, Index),
@@ -32,27 +36,31 @@ shuffler(Tracks) :-
   tent_init(Indices), % set initial values for all index
 
   constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
-  hill_climb(Indices, BSum).
+  hill_climb(Indices, Distances, Tracks, BSum).
 
 %----------------------------------------------------------------------
 % Hill Climbing
 %----------------------------------------------------------------------
-hill_climb(Indices, BSum) :-
+hill_climb(Indices, Distances, Tracks, BSum) :-
   conflict_constraints(cs, List),
   BSum tent_get OldCost,
   write("old cost"), writeln(OldCost),
   ( List=[] ->
-    get_final_playback(Indices),
+    get_final_playback(Indices)
     writeln("DONE"),
     print_list(Indices)
   ;
     select_var(List, Var1),
     select_other_var(Indices, Var1, Var2),
+
     swap(Var1, Var2),
+    get_distances(Distances, Var1, Var2, FilteredDistances),
+    update_distances(Indices, Tracks, FilteredDistances),
+
     BSum tent_get NewCost,
     write("New cost "), writeln(NewCost),
     ( NewCost < OldCost ->
-      hill_climb(Indices, BSum)
+      hill_climb(Indices, Distances, Tracks, BSum)
     ;
       writeln("Local Optimum")
     )
@@ -91,7 +99,6 @@ tent_init(List) :-
 constraint_setup(Indices, Tracks, BSum, Distances) :-
   calculate_distances(Indices, Tracks, Distances),
   ( foreach(Dist, Distances), foreach(B, AllBs) do
-    get_distance(Dist, D),
     arg(distance of artist_distance, Dist) $= 0 r_conflict cs,
     tent_call([Dist], BDist, BDist is arg(distance of artist_distance, Dist)),
     B tent_is BDist
@@ -111,7 +118,8 @@ calculate_distances(Indices, Tracks, Distances) :-
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
         threshold_diff(Distance, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
-        D = artist_distance{position1: P, position2: Next, distance: Diff}
+        TentDiff tent_set Diff,
+        D = artist_distance{position1: P, position2: Next, distance: TentDiff}
       ;
         D = artist_distance{position1: P, position2: -1, distance: 0}
       )
@@ -137,15 +145,40 @@ distance(Position, [_|T], Next, Distance) :-
 
   Distance is D + Length.
 
+get_distances(Distances, Var1, Var2, [AD1,AD2]) :- % Get artist_distance where artist is related to Var1 or Var2
+  get_artist_distance_from_index(Distances, Var1, AD1),
+  get_artist_distance_from_index(Distances, Var2, AD2).
+
+update_distances(Indices, Tracks, FilteredDistances) :-
+  get_playback(Indices, Tracks, Playback),
+  ( foreach(D, FilteredDistances), param(Playback) do
+    get_first_position(D, Position),
+    recalculate(Position, Playback, Distance),
+    get_distance(D, Current),
+    Current tent_set Distance
+  ).
+
+recalculate(Position, Playback, Distance) :-
+  playback_tail(Position, Playback, PlaybackTail),
+  distance(Position, PlaybackTail, Next, Dist),
+  get_tent_index(Next, NextPosition),
+  ( NextPosition > -1 -> % Another track from the same artist was found
+      threshold_diff(Dist, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+      Distance = Diff
+    ;
+      Distance = 0
+  ).
+
 %----------------------------------------------------------------------
-% Help Functions
+% Helper Functions
 %----------------------------------------------------------------------
 
 get_playback(Indices, Tracks, SortedPlayback) :-
   (foreach(P, Playback), foreach(I, Indices), foreach(T, Tracks) do
-    P = position{index: I, track: T}
+    I tent_get Tent,
+    P = position{index: I, track: T, tent: Tent}
   ),
-  sort(1, <, Playback, SortedPlayback). % Sort Playback on index
+  sort(3, <, Playback, SortedPlayback). % Sort Playback on index
 
 threshold_diff(Distance, Threshold, Diff) :-
   ( (Threshold - Distance) > 0 ->
@@ -157,8 +190,24 @@ threshold_diff(Distance, Threshold, Diff) :-
 playback_tail(_,[],[]).
 
 playback_tail(P, [H|T], T) :-
-  P == H.
+  get_id_from_position(P, ID1),
+  get_id_from_position(H, ID2),
+  ID1 == ID2.
 
 playback_tail(P, [_|T], Tail) :-
   playback_tail(P, T, Tail).
+
+
+get_artist_distance_from_index([H|_], Var, H) :-
+  get_first_position(H, First),
+  get_index(First, P1),
+  P1 == Var.
+
+get_artist_distance_from_index([H|_], Var, H) :-
+  get_second_position(H, Second),
+  get_index(Second, P2),
+  P2 == Var.
+
+get_artist_distance_from_index([_|T], Var, AD) :-
+  get_artist_distance_from_index(T, Var, AD).
 
