@@ -1,6 +1,8 @@
 :- lib(repair).
 :- lib(ic).
 :- lib(ic_global).
+:- import random_element/2 from tentative.
+
 
 :- local struct(track(id, artist, duration)).
 :- local struct(position(index, track, tent)).
@@ -37,34 +39,45 @@ shuffler(Tracks) :-
   tent_init(Indices), % set initial values for all index
 
   constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
+  writeln("--- Starting Hill Climb ---"),
   hill_climb(Indices, Distances, Tracks, BSum).
 
 %----------------------------------------------------------------------
 % Hill Climbing
 %----------------------------------------------------------------------
 hill_climb(Indices, Distances, Tracks, BSum) :-
-  writeln("--- DISTANCES ---"),
-  print_list(Distances),
   conflict_constraints(cs, List),
-  writeln("--- CONSTRAINTS ---"),
-  print_list(List),
   BSum tent_get OldCost,
   ( List=[] ->
+    writeln("DONE"),
     get_final_playback(Indices),
-    print_list(Indices)
+    get_playback(Indices, Tracks, Playback),
+    print_list(Playback)
   ;
-    select_var(List, Var1),
-    select_other_var(Indices, Var1, Var2),
-    swap(Var1, Var2),
+    (
+      select_var(List, Var1),
+      select_other_var(Indices, Var1, Var2),
+      swap(Var1, Var2),
+      write("Swapped "), write(Var1), write(" and "), writeln(Var2),
 
-    get_distances(Distances, Var1, Var2, FilteredDistances),
-    update_distances(Indices, Tracks, FilteredDistances),
+      writeln("--- Previous distances ---"),
+      print_list(Distances),
 
-    BSum tent_get NewCost,
-    ( NewCost < OldCost ->
-      hill_climb(Indices, Distances, Tracks, BSum)
-    ;
-      writeln("Local Optimum")
+      update_distances(Indices, Tracks, Distances, Updated), %%Här måste det vara deterministisk
+
+      writeln("--- Updated distances ---"),
+      print_list(Updated),
+
+      BSum tent_get NewCost,
+
+      write("Old cost: "), write(OldCost), write(" new cost: "), writeln(NewCost),
+
+      NewCost < OldCost
+        ->
+      hill_climb(Indices, Updated, Tracks, BSum)
+      ;
+      BSum tent_get NewCost,
+      write("Local optimum at cost "), write(NewCost)
     )
   ).
 
@@ -76,7 +89,7 @@ select_var(List, Index) :-
   arg(1, Var, Index). % Get the first index involved in the constraint
 
 select_other_var(Indices, Var1, Var2) :-
-  member(Var2, Indices),
+  random_element(Indices, Var2),
   Var1 \== Var2. % Choose a random index that isn't the constraint index
 
 swap(Var1, Var2) :-
@@ -119,7 +132,7 @@ calculate_distances(Indices, Tracks, Distances) :-
       distance(P, PlaybackTail, Next, Distance), % Get the distance to the next track for same artist as well as that position
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
-        threshold_diff(Distance, 12, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+        threshold_diff(Distance, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
         TentDiff tent_set Diff,
         D = artist_distance{position1: P, position2: Next, distance: TentDiff}
       ;
@@ -148,37 +161,34 @@ distance(Position, [_|T], Next, Distance) :-
 
   Distance is D + Length.
 
-get_distances(Distances, Var1, Var2, [AD1,AD2]) :- % Get artist_distance where artist is related to Var1 or Var2
-  get_artist_distance_from_index(Distances, Var1, AD1),
-  get_artist_distance_from_index(Distances, Var2, AD2)
-  .
-
-update_distances(Indices, Tracks, FilteredDistances) :-
-  get_playback(Indices, Tracks, Playback),
-  ( foreach(D, FilteredDistances), param(Playback) do
-    get_smallest_position(D, Position),
-    recalculate(Position, Playback, Distance),
-    get_distance(D, Current),
-    Current tent_set Distance
+update_distances(Indices, Tracks, FilteredDistances, Updated) :-
+  get_playback(Indices, Tracks, Playback), %% Den här är rätt
+  ( foreach(D, FilteredDistances), foreach(UD, Updated), param(Playback) do
+    %% get_smallest_position(D, Position), %% Om artist_distance bara innehåller en låt måste den returneras
+    get_first_position(D, Position),
+    recalculate(Position, Playback, Distance, Next),!,
+    get_distance(D, Dis),
+    Dis tent_set Distance,
+    UD = artist_distance{position1: Position, position2: Next, distance: Dis}
   ).
 
-recalculate(-1, _, 0).
-recalculate(Position, Playback, Distance) :-
-  playback_tail(Position, Playback, PlaybackTail),
+recalculate(Position, Playback, Distance, NextP) :-
+  playback_tail(Position, Playback, PlaybackTail), %% Den här returnerar fel för de som har blivit swappade
   distance(Position, PlaybackTail, Next, Dist),
   get_tent_index(Next, NextPosition),
   ( NextPosition > -1 -> % Another track from the same artist was found
-      threshold_diff(Dist, 12, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
-      Distance = Diff
+      threshold_diff(Dist, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+      Distance = Diff,
+      NextP = Next
     ;
-      Distance = 0
+      Distance = 0,
+      NextP = position{index: -1}
   ).
 
 %----------------------------------------------------------------------
 % Helper Functions
 %----------------------------------------------------------------------
 
-get_smallest_position(artist_distance(_,-1,_), -1).
 
 get_smallest_position(ArtistDistance, Position) :-
   get_first_position(ArtistDistance, First),
@@ -188,9 +198,17 @@ get_smallest_position(ArtistDistance, Position) :-
   FirstI tent_get FirstT,
   SecondI tent_get SecondT,
   (FirstT =< SecondT ->
-    Position = First
+    ( FirstT >= 0 ->
+      Position = First
+      ;
+      Position = Second
+    )
     ;
-    Position = Second
+    ( SecondT >= 0 ->
+      Position = Second
+      ;
+      Position = First
+    )
   ).
 
 get_playback(Indices, Tracks, SortedPlayback) :-
