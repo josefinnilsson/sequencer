@@ -34,13 +34,18 @@ get_tent_index(position(-1,_,_),-1).
 %----------------------------------------------------------------------
 
 shuffler(Tracks) :-
+  cputime(StartTime),
+
   length(Tracks, N),
   length(Indices, N), % len(Tracks) is equal to len(Indices)
   tent_init(Indices), % set initial values for all index
 
   constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   writeln("--- Starting Hill Climb ---"),
-  hill_climb(Indices, Distances, Tracks, BSum),!.
+  hill_climb(Indices, Distances, Tracks, BSum),!,
+
+  TimeUsed is cputime-StartTime,
+  printf("Goal took %.2f seconds%n", [TimeUsed]).
 
 %----------------------------------------------------------------------
 % Hill Climbing
