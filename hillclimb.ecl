@@ -40,7 +40,7 @@ shuffler(Tracks) :-
 
   constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   writeln("--- Starting Hill Climb ---"),
-  hill_climb(Indices, Distances, Tracks, BSum).
+  hill_climb(Indices, Distances, Tracks, BSum),!.
 
 %----------------------------------------------------------------------
 % Hill Climbing
@@ -49,12 +49,11 @@ hill_climb(Indices, Distances, Tracks, BSum) :-
   conflict_constraints(cs, List),
   BSum tent_get OldCost,
   ( List=[] ->
-    writeln("DONE"),
+    writeln("Playback:"),
     get_final_playback(Indices),
     get_playback(Indices, Tracks, Playback),
     print_list(Playback)
   ;
-    (
       select_var(List, Var1),
       select_other_var(Indices, Var1, Var2),
       swap(Var1, Var2),
@@ -72,13 +71,9 @@ hill_climb(Indices, Distances, Tracks, BSum) :-
 
       write("Old cost: "), write(OldCost), write(" new cost: "), writeln(NewCost),
 
-      NewCost < OldCost
-        ->
+      NewCost < OldCost,
+
       hill_climb(Indices, Updated, Tracks, BSum)
-      ;
-      BSum tent_get NewCost,
-      write("Local optimum at cost "), write(NewCost)
-    )
   ).
 
 select_var(List, Index) :-
@@ -132,7 +127,7 @@ calculate_distances(Indices, Tracks, Distances) :-
       distance(P, PlaybackTail, Next, Distance), % Get the distance to the next track for same artist as well as that position
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
-        threshold_diff(Distance, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+        threshold_diff(Distance, 14, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
         TentDiff tent_set Diff,
         D = artist_distance{position1: P, position2: Next, distance: TentDiff}
       ;
@@ -177,7 +172,7 @@ recalculate(Position, Playback, Distance, NextP) :-
   distance(Position, PlaybackTail, Next, Dist),
   get_tent_index(Next, NextPosition),
   ( NextPosition > -1 -> % Another track from the same artist was found
-      threshold_diff(Dist, 8, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+      threshold_diff(Dist, 14, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
       Distance = Diff,
       NextP = Next
     ;
