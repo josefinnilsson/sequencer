@@ -162,9 +162,8 @@ distance(Position, [_|T], Next, Distance) :-
   Distance is D + Length.
 
 update_distances(Indices, Tracks, FilteredDistances, Updated) :-
-  get_playback(Indices, Tracks, Playback), %% Den här är rätt
+  get_playback(Indices, Tracks, Playback),
   ( foreach(D, FilteredDistances), foreach(UD, Updated), param(Playback) do
-    %% get_smallest_position(D, Position), %% Om artist_distance bara innehåller en låt måste den returneras
     get_first_position(D, Position),
     recalculate(Position, Playback, Distance, Next),!,
     get_distance(D, Dis),
@@ -173,7 +172,7 @@ update_distances(Indices, Tracks, FilteredDistances, Updated) :-
   ).
 
 recalculate(Position, Playback, Distance, NextP) :-
-  playback_tail(Position, Playback, PlaybackTail), %% Den här returnerar fel för de som har blivit swappade
+  playback_tail(Position, Playback, PlaybackTail),
   distance(Position, PlaybackTail, Next, Dist),
   get_tent_index(Next, NextPosition),
   ( NextPosition > -1 -> % Another track from the same artist was found
@@ -188,28 +187,6 @@ recalculate(Position, Playback, Distance, NextP) :-
 %----------------------------------------------------------------------
 % Helper Functions
 %----------------------------------------------------------------------
-
-
-get_smallest_position(ArtistDistance, Position) :-
-  get_first_position(ArtistDistance, First),
-  get_index(First, FirstI),
-  get_second_position(ArtistDistance, Second),
-  get_index(Second, SecondI),
-  FirstI tent_get FirstT,
-  SecondI tent_get SecondT,
-  (FirstT =< SecondT ->
-    ( FirstT >= 0 ->
-      Position = First
-      ;
-      Position = Second
-    )
-    ;
-    ( SecondT >= 0 ->
-      Position = Second
-      ;
-      Position = First
-    )
-  ).
 
 get_playback(Indices, Tracks, SortedPlayback) :-
   (foreach(P, Playback), foreach(I, Indices), foreach(T, Tracks) do
