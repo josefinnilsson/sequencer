@@ -1,0 +1,149 @@
+DATA
+shuffler([track(0, "madonna", 3),track(1,"lana del rey",3),track(2,"kent",3),track(3,"lana del rey",3),track(4,"kent",3),track(5,"abba",3),track(6,"khalid",3),track(7,"billie",3)]).
+
+ORIGINAL DISTANCES
+artist_distance(position(_266{0}, track(0, madonna, 3), 0), position(-1, _1297, _1284), _666{0})
+artist_distance(position(_333{1}, track(1, lana del rey, 3), 1), position(_421{3}, track(3, lana del rey, 4), 3), _741{9})
+artist_distance(position(_377{2}, track(2, kent, 4), 2), position(_465{4}, track(4, kent, 3), 4), _816{8})
+artist_distance(position(_421{3}, track(3, lana del rey, 4), 3), position(-1, _2948, _2935), _886{0})
+artist_distance(position(_465{4}, track(4, kent, 3), 4), position(-1, _3525, _3512), _953{0})
+artist_distance(position(_509{5}, track(5, abba, 3), 5), position(-1, _4102, _4089), _1017{0})
+
+CURRENT CONSTRAINTS
+arg(3, artist_distance(position(_377{2}, track(2, kent, 4), 2), position(_465{4}, track(4, kent, 3), 4), _816{8})) $= 0
+arg(3, artist_distance(position(_333{1}, track(1, lana del rey, 3), 1), position(_421{3}, track(3, lana del rey, 4), 3), _741{9})) $= 0
+
+SWAP
+track0 och track2
+
+CURRENT PLAYBACK
+ID: 2 A: Kent
+ID: 1 A: Lana
+ID: 0 A: Madonna
+ID: 3 A: Lana
+ID: 4 A: Kent
+ID: 5 A: ABBA
+
+NEW DISTANCES
+artist_distance(position(_266{2}, track(0, madonna, 3), 0), position(-1, _1297, _1284), _666{0})
+artist_distance(position(_333{1}, track(1, lana del rey, 3), 1), position(_421{3}, track(3, lana del rey, 4), 3), _741{9})
+artist_distance(position(_377{0}, track(2, kent, 4), 2), position(_465{4}, track(4, kent, 3), 4), _816{0})
+artist_distance(position(_421{3}, track(3, lana del rey, 4), 3), position(-1, _2948, _2935), _886{0})
+artist_distance(position(_465{4}, track(4, kent, 3), 4), position(-1, _3525, _3512), _953{0})
+artist_distance(position(_509{5}, track(5, abba, 3), 5), position(-1, _4102, _4089), _1017{0})
+
+CURRENT CONSTRAINTS
+arg(3, artist_distance(position(_333{1}, track(1, lana del rey, 3), 1), position(_421{3}, track(3, lana del rey, 4), 3), _741{9})) $= 0
+
+SWAP
+track0 and track1
+
+CURRENT PLAYBACK
+ID: 2 A: Kent
+ID: 0 A: Madonna
+ID: 1 A: Lana
+ID: 3 A: Lana
+ID: 4 A: Kent
+ID: 5 A: ABBA
+
+NEW DISTANCES
+artist_distance(position(_266{1}, track(0, madonna, 3), 0), position(-1, _1297, _1284), _666{0})
+artist_distance(position(_333{2}, track(1, lana del rey, 3), 1), position(_421{3}, track(3, lana del rey, 4), 3), _741{12})
+artist_distance(position(_377{0}, track(2, kent, 4), 2), position(_465{4}, track(4, kent, 3), 4), _816{0})
+artist_distance(position(_421{3}, track(3, lana del rey, 4), 3), position(-1, _2948, _2935), _886{0})
+artist_distance(position(_465{4}, track(4, kent, 3), 4), position(-1, _3525, _3512), _953{0})
+artist_distance(position(_509{5}, track(5, abba, 3), 5), position(-1, _4102, _4089), _1017{0})
+
+------
+
+Backtracking verkar göras i update_distances, som i sin tur orsakas av recalculate:
+
+
+I nuläget verkar inte ändringarna i update_distance propageras:
+--- Starting Hill Climb ---
+INITIAL DISTANCES
+artist_distance(position(_298{0}, track(0, madonna, 3), 0), position(-1, _1617, _1603), _826{0})
+artist_distance(position(_366{1}, track(1, lana del rey, 3), 1), position(_456{3}, track(3, lana del rey, 3), 3), _902{1})
+artist_distance(position(_411{2}, track(2, kent, 3), 2), position(_501{4}, track(4, kent, 3), 4), _978{1})
+artist_distance(position(_456{3}, track(3, lana del rey, 3), 3), position(-1, _3279, _3265), _1055{0})
+artist_distance(position(_501{4}, track(4, kent, 3), 4), position(-1, _3861, _3847), _1129{0})
+artist_distance(position(_546{5}, track(5, abba, 3), 5), position(-1, _4443, _4429), _1200{0})
+artist_distance(position(_591{6}, track(6, khalid, 3), 6), position(-1, _5025, _5011), _1268{0})
+artist_distance(position(_636{7}, track(7, billie, 3), 7), position(-1, _5607, _5593), _1333{0})
+Swapped _411{7} and _636{2}
+before
+Distance
+artist_distance(position(_298{0}, track(0, madonna, 3), 0), position(-1, _1617, _1603), _826{0})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_366{1}, track(1, lana del rey, 3), 1), position(_456{3}, track(3, lana del rey, 3), 3), _902{1})
+New distance: 1
+Updated
+DONE
+Distance
+artist_distance(position(_411{7}, track(2, kent, 3), 2), position(_501{4}, track(4, kent, 3), 4), _978{1})
+New distance: 0
+Swapped _366{0} and _298{1}
+before
+Distance
+artist_distance(position(_298{1}, track(0, madonna, 3), 0), position(-1, _1617, _1603), _826{0})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_366{0}, track(1, lana del rey, 3), 1), position(_456{3}, track(3, lana del rey, 3), 3), _902{1})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_411{2}, track(2, kent, 3), 2), position(_501{4}, track(4, kent, 3), 4), _978{1})
+New distance: 1
+Updated
+DONE
+Distance
+artist_distance(position(_456{3}, track(3, lana del rey, 3), 3), position(-1, _3279, _3265), _1055{0})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_501{4}, track(4, kent, 3), 4), position(-1, _3861, _3847), _1129{0})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_546{5}, track(5, abba, 3), 5), position(-1, _4443, _4429), _1200{0})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_591{6}, track(6, khalid, 3), 6), position(-1, _5025, _5011), _1268{0})
+New distance: 0
+Updated
+DONE
+Distance
+artist_distance(position(_636{7}, track(7, billie, 3), 7), position(-1, _5607, _5593), _1333{0})
+New distance: 0
+Updated
+DONE
+after
+--- Updated Distances ---
+artist_distance(position(_298{1}, track(0, madonna, 3), 0), position(-1, _1617, _1603), _826{0})
+artist_distance(position(_366{0}, track(1, lana del rey, 3), 1), position(_456{3}, track(3, lana del rey, 3), 3), _902{1})
+artist_distance(position(_411{2}, track(2, kent, 3), 2), position(_501{4}, track(4, kent, 3), 4), _978{1})
+artist_distance(position(_456{3}, track(3, lana del rey, 3), 3), position(-1, _3279, _3265), _1055{0})
+artist_distance(position(_501{4}, track(4, kent, 3), 4), position(-1, _3861, _3847), _1129{0})
+artist_distance(position(_546{5}, track(5, abba, 3), 5), position(-1, _4443, _4429), _1200{0})
+artist_distance(position(_591{6}, track(6, khalid, 3), 6), position(-1, _5025, _5011), _1268{0})
+artist_distance(position(_636{7}, track(7, billie, 3), 7), position(-1, _5607, _5593), _1333{0})
+Local optimum at cost 2
+
+
+--------
+position: position(_366{1}, track(1, lana del rey, 3), 1)next: position(_456{3}, track(3, lana del rey, 3), 3) distance: _7108{1}
+
+position: position(_501{4}, track(4, kent, 3), 4)next: position(_411{5}, track(2, kent, 3), 5) distance: _7224{4}
+
+
+
