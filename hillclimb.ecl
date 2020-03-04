@@ -1,8 +1,16 @@
+%----------------------------------------------------------------------
+% Libraries
+%----------------------------------------------------------------------
+
 :- lib(repair).
 :- lib(ic).
 :- lib(ic_global).
 :- import random_element/2 from tentative.
 
+
+%----------------------------------------------------------------------
+% Structs
+%----------------------------------------------------------------------
 
 :- local struct(track(id, artist, duration)).
 :- local struct(position(index, track, tent)).
@@ -28,6 +36,7 @@ get_tent_index(Position, Tent) :-
   get_index(Position, Index),
   Index tent_get Tent.
 get_tent_index(position(-1,_,_),-1).
+
 %----------------------------------------------------------------------
 % Shuffler
 %----------------------------------------------------------------------
@@ -46,12 +55,16 @@ shuffler(Tracks) :-
   TimeUsed is cputime-StartTime,
   printf("Goal took %.2f seconds%n", [TimeUsed]).
 
-final(Indices, Tracks, BestCost):-
+final(Indices, Tracks, BestCost):- % When the final playback is found, print it along with its cost
   writeln("--- Final playback ---"),
   write("Cost: "), writeln(BestCost),
   get_final_playback(Indices),
   get_playback(Indices, Tracks, Playback),
   print_list(Playback).
+
+get_final_playback(List) :-
+  List tent_get Tent,
+  List = Tent.
 
 %----------------------------------------------------------------------
 % Hill Climbing
@@ -60,34 +73,39 @@ final(Indices, Tracks, BestCost):-
 hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices) :-
   write("Count: "), writeln(Count),
   write("Best cost: "), writeln(BestCost),
-  conflict_constraints(cs, List),
-  BSum tent_get OldCost,
-  ( List=[] ->
+  conflict_constraints(cs, List), % List will include current conflicting constraints
+  BSum tent_get OldCost, % Store the old cost
+  ( List=[] -> % If List is empty, an optimal solution is found
     final(Indices, Tracks, 0)
   ;
-      select_var(List, Var1),
-      select_other_var(Indices, Var1, Var2),
-      swap(Var1, Var2),
+      select_var(List, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
+      select_other_var(Indices, Var1, Var2), % Select a random variable to swap with
+      swap(Var1, Var2), % Swap the two variables
 
-      NewCount is Count + 1,
+      NewCount is Count + 1, % Increment the count once
       ( NewCount > Max ->
-        final(BestIndices, Tracks, BestCost)
+        final(BestIndices, Tracks, BestCost) % If no more tries are allowed, print solution
         ;
-        update_distances(Indices, Tracks, Distances, Updated),
+        update_distances(Indices, Tracks, Distances, Updated), % Recalculate the distances, Updated holds the new Distnaces
 
-        BSum tent_get NewCost,
+        BSum tent_get NewCost, % Get the new cost
 
-        NewCount2 is NewCount + 1,
+        NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
 
         NewCost < OldCost,
 
         ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, NewCost, Indices)
+          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, NewCost, Indices) % Move on with the new order as the best
         ;
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, BestCost, BestIndices)
+          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, BestCost, BestIndices) % Move on with the old order as the best
         )
       )
   ).
+
+
+%----------------------------------------------------------------------
+% Swapping
+%----------------------------------------------------------------------
 
 select_var(List, Index) :-
   member(Constraint, List), % Choose one of the conflicting constraints
@@ -96,7 +114,7 @@ select_var(List, Index) :-
   arg(1, ArtistDistance, Var),
   arg(1, Var, Index). % Get the first index involved in the constraint
 
-select_other_var(Indices, Var1, Var2) :-
+select_other_var(Indices, Var1, Var2) :- % TODO: Optimise
   random_element(Indices, Var2),
   Var1 \== Var2. % Choose a random index that isn't the constraint index
 
@@ -106,20 +124,17 @@ swap(Var1, Var2) :-
   Var1 tent_set Value2,
   Var2 tent_set Value1.
 
-get_final_playback(List) :-
-  List tent_get Tent,
-  List = Tent.
-
 %----------------------------------------------------------------------
 % Constraint Setup
 %----------------------------------------------------------------------
-tent_init(List) :-
+
+tent_init(List) :- % Create an initial playback with order 0,1,..N
   length(List, N),
   ( for(I, 0, N-1), foreach(Var, List) do
     Var tent_set I
   ).
 
-constraint_setup(Indices, Tracks, BSum, Distances) :-
+constraint_setup(Indices, Tracks, BSum, Distances) :- % Initialise the constraints
   calculate_distances(Indices, Tracks, Distances),
   ( foreach(Dist, Distances), foreach(B, AllBs) do
     arg(distance of artist_distance, Dist) $= 0 r_conflict cs,
@@ -169,9 +184,9 @@ distance(Position, [_|T], Next, Distance) :-
 
   Distance is D + Length.
 
-update_distances(Indices, Tracks, FilteredDistances, Updated) :-
+update_distances(Indices, Tracks, Distances, Updated) :- % Recalculate the distances for the current playback
   get_playback(Indices, Tracks, Playback),
-  ( foreach(D, FilteredDistances), foreach(UD, Updated), param(Playback) do
+  ( foreach(D, Distances), foreach(UD, Updated), param(Playback) do
     get_first_position(D, Position),
     recalculate(Position, Playback, Distance, Next),!,
     get_distance(D, Dis),
@@ -189,7 +204,7 @@ recalculate(Position, Playback, Distance, NextP) :-
       NextP = Next
     ;
       Distance = 0,
-      NextP = position{index: -1}
+      NextP = position{index: -1} % If there are no more tracks from this artist, set index to -1
   ).
 
 %----------------------------------------------------------------------
@@ -203,14 +218,14 @@ get_playback(Indices, Tracks, SortedPlayback) :-
   ),
   sort(3, <, Playback, SortedPlayback). % Sort Playback on index
 
-threshold_diff(Distance, Threshold, Diff) :-
+threshold_diff(Distance, Threshold, Diff) :- % Return the difference between threshold and distance between two artists
   ( (Threshold - Distance) > 0 ->
       Diff is (Threshold - Distance)
   ;
     Diff is 0
   ).
 
-playback_tail(_,[],[]).
+playback_tail(_,[],[]). % playback_tail returns the succeeding tracks in the playback given a single track
 
 playback_tail(P, [H|T], T) :-
   get_id_from_position(P, ID1),
@@ -219,22 +234,3 @@ playback_tail(P, [H|T], T) :-
 
 playback_tail(P, [_|T], Tail) :-
   playback_tail(P, T, Tail).
-
-
-get_artist_distance_from_index([H|_], Var, H) :-
-  get_first_position(H, First),
-  get_index(First, P1),
-  P1 == Var.
-
-get_artist_distance_from_index([H|_], Var, H) :-
-  get_second_position(H, Second),
-  get_index(Second, P2),
-  P2 == Var.
-
-get_artist_distance_from_index([_|T], Var, AD) :-
-  get_artist_distance_from_index(T, Var, AD).
-
-add(X,[],[X]).
-add(X,[Y|Tail],[Y|Tail1]):-
-  add(X,Tail,Tail1).
-
