@@ -28,7 +28,6 @@ get_tent_index(Position, Tent) :-
   get_index(Position, Index),
   Index tent_get Tent.
 get_tent_index(position(-1,_,_),-1).
-
 %----------------------------------------------------------------------
 % Shuffler
 %----------------------------------------------------------------------
@@ -42,7 +41,7 @@ shuffler(Tracks) :-
 
   constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   writeln("--- Starting Hill Climb ---"),
-  hill_climb(Indices, Distances, Tracks, BSum, 0, 20, 9999, Indices),!,
+  hill_climb(Indices, Distances, Tracks, BSum, 0, 10, 9999, Indices),!,
 
   TimeUsed is cputime-StartTime,
   printf("Goal took %.2f seconds%n", [TimeUsed]).
@@ -59,6 +58,8 @@ final(Indices, Tracks, BestCost):-
 %----------------------------------------------------------------------
 
 hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices) :-
+  write("Count: "), writeln(Count),
+  write("Best cost: "), writeln(BestCost),
   conflict_constraints(cs, List),
   BSum tent_get OldCost,
   ( List=[] ->
@@ -67,31 +68,23 @@ hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices) 
       select_var(List, Var1),
       select_other_var(Indices, Var1, Var2),
       swap(Var1, Var2),
+
       NewCount is Count + 1,
       ( NewCount > Max ->
         final(BestIndices, Tracks, BestCost)
         ;
-        write("Count "), writeln(NewCount),
-        write("Swapped "), write(Var1), write(" and "), writeln(Var2),
-
-        writeln("--- Previous distances ---"),
-        print_list(Distances),
-
         update_distances(Indices, Tracks, Distances, Updated),
-
-        writeln("--- Updated distances ---"),
-        print_list(Updated),
 
         BSum tent_get NewCost,
 
-        write("Old cost: "), write(OldCost), write(" new cost: "), writeln(NewCost),
+        NewCount2 is NewCount + 1,
 
         NewCost < OldCost,
 
         ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount, Max, NewCost, Indices)
+          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, NewCost, Indices)
         ;
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount, Max, BestCost, BestIndices)
+          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, BestCost, BestIndices)
         )
       )
   ).
@@ -147,7 +140,7 @@ calculate_distances(Indices, Tracks, Distances) :-
       distance(P, PlaybackTail, Next, Distance), % Get the distance to the next track for same artist as well as that position
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
-        threshold_diff(Distance, 20, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+        threshold_diff(Distance, 10, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
         TentDiff tent_set Diff,
         D = artist_distance{position1: P, position2: Next, distance: TentDiff}
       ;
@@ -189,9 +182,9 @@ update_distances(Indices, Tracks, FilteredDistances, Updated) :-
 recalculate(Position, Playback, Distance, NextP) :-
   playback_tail(Position, Playback, PlaybackTail),
   distance(Position, PlaybackTail, Next, Dist),
-  get_tent_index(Next, NextPosition),
+  get_tent_index(Next, NextPosition),!,
   ( NextPosition > -1 -> % Another track from the same artist was found
-      threshold_diff(Dist, 20, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+      threshold_diff(Dist, 10, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
       Distance = Diff,
       NextP = Next
     ;
