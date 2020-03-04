@@ -58,13 +58,14 @@ shuffler(Tracks) :-
 final(Indices, Tracks, BestCost):- % When the final playback is found, print it along with its cost
   writeln("--- Final playback ---"),
   write("Cost: "), writeln(BestCost),
-  get_final_playback(Indices),
-  get_playback(Indices, Tracks, Playback),
+  get_final_playback(Indices, Tentative),
+  get_playback(Tentative, Tracks, Playback),
   print_list(Playback).
 
-get_final_playback(List) :-
-  List tent_get Tent,
-  List = Tent.
+get_final_playback(List, Tentative) :-
+  ( foreach(L, List), foreach(T, Tentative) do
+    L tent_get T
+  ).
 
 %----------------------------------------------------------------------
 % Hill Climbing
