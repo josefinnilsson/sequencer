@@ -1,0 +1,919 @@
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices --- SWAP WAS POSITIVE
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 8
+--- Best Indices --- SWAP WAS POSITIVE ON SECOND TRY
+_299{2}
+_367{1}
+_412{0}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 5
+--- Best Indices --- THIS IS WEIRD
+_299{2}
+_367{6}
+_412{0}
+_457{3}
+_502{4}
+_547{5}
+_592{1}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 11
+--- Best Indices ---
+_299{1}
+_367{0}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb --- THIS IS EXTRA WEIRD
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 11
+--- Best Indices ---
+_299{0}
+_367{6}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{1}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 11
+--- Best Indices ---
+_299{1}
+_367{0}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 8
+--- Best Indices ---
+_299{2}
+_367{0}
+_412{1}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 8
+--- Best Indices ---
+_299{0}
+_367{7}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{1}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 5
+--- Best Indices ---
+_299{0}
+_367{7}
+_412{1}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{2}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 8
+--- Best Indices ---
+_299{2}
+_367{1}
+_412{0}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 5
+--- Best Indices ---
+_299{2}
+_367{6}
+_412{0}
+_457{3}
+_502{4}
+_547{5}
+_592{1}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 11
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{7}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{2}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 7
+--- Best Indices ---
+_299{4}
+_367{1}
+_412{7}
+_457{3}
+_502{0}
+_547{5}
+_592{6}
+_637{2}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 8
+--- Best Indices ---
+_299{0}
+_367{6}
+_412{7}
+_457{3}
+_502{4}
+_547{5}
+_592{1}
+_637{2}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 11
+--- Best Indices ---
+_299{1}
+_367{0}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 8
+--- Best Indices ---
+_299{0}
+_367{7}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{1}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 8
+--- Best Indices ---
+_299{2}
+_367{1}
+_412{0}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 2
+--- Best Indices ---
+_299{2}
+_367{7}
+_412{0}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{1}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 3
+Best cost: 1
+--- Best Indices ---
+_299{3}
+_367{7}
+_412{0}
+_457{2}
+_502{4}
+_547{5}
+_592{6}
+_637{1}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb ---
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+--- Starting Hill Climb --- EXECUTION THAT FINDS OPTIMAL SOLUTION
+Count: 0
+Best cost: 9999
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{2}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{7}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 1
+Best cost: 11
+--- Best Indices ---
+_299{0}
+_367{1}
+_412{7}
+_457{3}
+_502{4}
+_547{5}
+_592{6}
+_637{2}
+after swap
+after count increment
+inside first if 2
+after update distances
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 2
+Best cost: 8
+--- Best Indices ---
+_299{0}
+_367{6}
+_412{7}
+_457{3}
+_502{4}
+_547{5}
+_592{1}
+_637{2}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 3
+Best cost: 5
+--- Best Indices ---
+_299{0}
+_367{6}
+_412{7}
+_457{2}
+_502{4}
+_547{5}
+_592{1}
+_637{3}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 4
+Best cost: 4
+--- Best Indices ---
+_299{2}
+_367{6}
+_412{7}
+_457{0}
+_502{4}
+_547{5}
+_592{1}
+_637{3}
+after swap
+after count increment
+inside first if 2
+after update distances
+inside second if 1
+Count: 5
+Best cost: 0
+--- Best Indices ---
+_299{4}
+_367{6}
+_412{7}
+_457{0}
+_502{2}
+_547{5}
+_592{1}
+_637{3}
+--- Final playback ---
+Cost: 0
+position(0, track(3, lana del rey, 3), 0)
+position(1, track(6, khalid, 3), 1)
+position(2, track(4, kent, 3), 2)
+position(3, track(7, billie, 3), 3)
+position(4, track(0, madonna, 3), 4)
+position(5, track(5, abba, 3), 5)
+position(6, track(1, lana del rey, 3), 6)
+position(7, track(2, kent, 3), 7)
+Goal took 0.02 seconds
