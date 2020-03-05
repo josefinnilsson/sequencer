@@ -41,7 +41,7 @@ get_tent_index(position(-1,_,_),-1).
 % Shuffler
 %----------------------------------------------------------------------
 
-shuffler(Tracks) :-
+shuffler(Tracks, Result) :-
   cputime(StartTime),
 
   length(Tracks, N),
@@ -49,18 +49,16 @@ shuffler(Tracks) :-
   tent_init(Indices), % set initial values for all index
 
   constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
-  writeln("--- Starting Hill Climb ---"),
-  hill_climb(Indices, Distances, Tracks, BSum, 0, 10, 9999, Indices),!,
+  hill_climb(Indices, Distances, Tracks, BSum, 0, 10, 9999, Indices, Result),!,
 
   TimeUsed is cputime-StartTime,
   printf("Goal took %.2f seconds%n", [TimeUsed]).
 
-final(Indices, Tracks, BestCost):- % When the final playback is found, print it along with its cost
-  writeln("--- Final playback ---"),
+final(Indices, Tracks, BestCost, Result):- % When the final playback is found, print it along with its cost
+  writeln("--- Results ---"),
   write("Cost: "), writeln(BestCost),
   get_final_playback(Indices, Tentative),
-  get_playback(Tentative, Tracks, Playback),
-  print_list(Playback).
+  get_playback(Tentative, Tracks, Result).
 
 get_final_playback(List, Tentative) :-
   ( foreach(L, List), foreach(T, Tentative) do
@@ -71,13 +69,11 @@ get_final_playback(List, Tentative) :-
 % Hill Climbing
 %----------------------------------------------------------------------
 
-hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices) :-
-  write("Count: "), writeln(Count),
-  write("Best cost: "), writeln(BestCost),
+hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices, Result) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
   BSum tent_get OldCost, % Store the old cost
   ( List=[] -> % If List is empty, an optimal solution is found
-    final(Indices, Tracks, 0)
+    final(Indices, Tracks, 0, Result)
   ;
       select_var(List, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
       select_other_var(Indices, Var1, Var2), % Select a random variable to swap with
@@ -85,7 +81,7 @@ hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices) 
 
       NewCount is Count + 1, % Increment the count once
       ( NewCount > Max ->
-        final(BestIndices, Tracks, BestCost) % If no more tries are allowed, print solution
+        final(BestIndices, Tracks, BestCost, Result) % If no more tries are allowed, print solution
         ;
         update_distances(Indices, Tracks, Distances, Updated), % Recalculate the distances, Updated holds the new Distnaces
 
@@ -96,9 +92,9 @@ hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices) 
         NewCost < OldCost,
 
         ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, NewCost, Indices) % Move on with the new order as the best
+          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, NewCost, Indices, Result) % Move on with the new order as the best
         ;
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, BestCost, BestIndices) % Move on with the old order as the best
+          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, BestCost, BestIndices, Result) % Move on with the old order as the best
         )
       )
   ).
