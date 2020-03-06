@@ -41,15 +41,15 @@ get_tent_index(position(-1,_,_),-1).
 % Shuffler
 %----------------------------------------------------------------------
 
-shuffler(Tracks, Result, Cost, TimeUsed) :-
+shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
   cputime(StartTime),
 
   length(Tracks, N),
   length(Indices, N), % len(Tracks) is equal to len(Indices)
   tent_init(Indices), % set initial values for all index
 
-  constraint_setup(Indices, Tracks, BSum, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
-  hill_climb(Indices, Distances, Tracks, BSum, 0, 10, 9999, Indices, Result, Cost),!,
+  constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
+  hill_climb(Indices, Distances, Tracks, BSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
   TimeUsed is cputime-StartTime.
 
@@ -67,7 +67,7 @@ get_final_playback(List, Tentative) :-
 % Hill Climbing
 %----------------------------------------------------------------------
 
-hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices, Result, Cost) :-
+hill_climb(Indices, Distances, Tracks, BSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
   BSum tent_get OldCost, % Store the old cost
   ( List=[] -> % If List is empty, an optimal solution is found
@@ -81,7 +81,7 @@ hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices, 
       ( NewCount > Max ->
         final(BestIndices, Tracks, BestCost, Result, Cost) % If no more tries are allowed, return solution
         ;
-        update_distances(Indices, Tracks, Distances, Updated), % Recalculate the distances, Updated holds the new Distnaces
+        update_distances(Indices, Tracks, Distances, ArtistDistance, Updated), % Recalculate the distances, Updated holds the new Distnaces
 
         BSum tent_get NewCost, % Get the new cost
 
@@ -90,9 +90,9 @@ hill_climb(Indices, Distances, Tracks, BSum, Count, Max, BestCost, BestIndices, 
         NewCost < OldCost,
 
         ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, NewCost, Indices, Result, Cost) % Move on with the new order as the best
+          hill_climb(Indices, Updated, Tracks, BSum, ArtistDistance,  NewCount2, Max, NewCost, Indices, Result, Cost) % Move on with the new order as the best
         ;
-          hill_climb(Indices, Updated, Tracks, BSum, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+          hill_climb(Indices, Updated, Tracks, BSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
         )
       )
   ).
@@ -129,8 +129,8 @@ tent_init(List) :- % Create an initial playback with order 0,1,..N
     Var tent_set I
   ).
 
-constraint_setup(Indices, Tracks, BSum, Distances) :- % Initialise the constraints
-  calculate_distances(Indices, Tracks, Distances),
+constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances) :- % Initialise the constraints
+  calculate_distances(Indices, Tracks, ArtistDistance, Distances),
   ( foreach(Dist, Distances), foreach(B, AllBs) do
     arg(distance of artist_distance, Dist) $= 0 r_conflict cs,
     tent_call([Dist], BDist, BDist is arg(distance of artist_distance, Dist)),
@@ -143,14 +143,14 @@ constraint_setup(Indices, Tracks, BSum, Distances) :- % Initialise the constrain
 % Distance Calculation
 %----------------------------------------------------------------------
 
-calculate_distances(Indices, Tracks, Distances) :-
+calculate_distances(Indices, Tracks, ArtistDistance, Distances) :-
   get_playback(Indices, Tracks, Playback),
-  ( foreach(P, Playback), foreach(D, Distances), param(Playback) do
+  ( foreach(P, Playback), foreach(D, Distances), param(Playback, ArtistDistance) do
       playback_tail(P, Playback, PlaybackTail),
       distance(P, PlaybackTail, Next, Distance), % Get the distance to the next track for same artist as well as that position
       get_tent_index(Next, NextPosition),
       ( NextPosition > -1 -> % Another track from the same artist was found
-        threshold_diff(Distance, 10, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+        threshold_diff(Distance, ArtistDistance, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
         TentDiff tent_set Diff,
         D = artist_distance{position1: P, position2: Next, distance: TentDiff}
       ;
@@ -179,22 +179,22 @@ distance(Position, [_|T], Next, Distance) :-
 
   Distance is D + Length.
 
-update_distances(Indices, Tracks, Distances, Updated) :- % Recalculate the distances for the current playback
+update_distances(Indices, Tracks, Distances, ArtistDistance, Updated) :- % Recalculate the distances for the current playback
   get_playback(Indices, Tracks, Playback),
-  ( foreach(D, Distances), foreach(UD, Updated), param(Playback) do
+  ( foreach(D, Distances), foreach(UD, Updated), param(Playback, ArtistDistance) do
     get_first_position(D, Position),
-    recalculate(Position, Playback, Distance, Next),!,
+    recalculate(Position, Playback, ArtistDistance, Distance, Next),!,
     get_distance(D, Dis),
     Dis tent_set Distance,
     UD = artist_distance{position1: Position, position2: Next, distance: Dis}
   ).
 
-recalculate(Position, Playback, Distance, NextP) :-
+recalculate(Position, Playback, ArtistDistance, Distance, NextP) :-
   playback_tail(Position, Playback, PlaybackTail),
   distance(Position, PlaybackTail, Next, Dist),
   get_tent_index(Next, NextPosition),!,
   ( NextPosition > -1 -> % Another track from the same artist was found
-      threshold_diff(Dist, 10, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
+      threshold_diff(Dist, ArtistDistance, Diff), % Diff is the difference from the Distance to 8, Diff >= 0
       Distance = Diff,
       NextP = Next
     ;
