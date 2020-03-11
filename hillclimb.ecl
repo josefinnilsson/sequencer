@@ -12,7 +12,7 @@
 % Structs
 %----------------------------------------------------------------------
 
-:- local struct(track(id, artist, duration)).
+:- local struct(track(id, artist, duration, genre)).
 :- local struct(position(index, track, tent)).
 :- local struct(artist_distance(position1, position2, distance)).
 
@@ -23,14 +23,14 @@
 get_index(position(I,_,_),I).
 get_track(position(_,T,_),T).
 
-get_duration(track(_,_,D),D).
-get_artist(track(_,A,_),A).
+get_duration(track(_,_,D,_),D).
+get_artist(track(_,A,_,_),A).
 
 get_distance(artist_distance(_,_,D),D).
 get_first_position(artist_distance(P,_,_),P).
 get_second_position(artist_distance(_,P,_),P).
 
-get_id_from_position(position(_, track(ID, _, _), _), ID).
+get_id_from_position(position(_, track(ID, _, _, _), _), ID).
 
 get_tent_index(Position, Tent) :-
   get_index(Position, Index),
