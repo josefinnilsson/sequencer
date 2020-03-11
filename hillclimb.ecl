@@ -49,6 +49,8 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
   tent_init(Indices), % set initial values for all index
 
   constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
+  genre_constraint_setup(Indices, Tracks, GSum),
+
   hill_climb(Indices, Distances, Tracks, BSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
   TimeUsed is cputime-StartTime.
@@ -138,6 +140,35 @@ constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances) :- % Initiali
   ),
   tent_call([AllBs], BSum, BSum is sumlist(AllBs)).
 
+genre_help([P, Next], GSum) :-
+  get_track(P, Track),
+  get_track(Next, NextTrack),
+  arg(genre of track, Track) $\= arg(genre of track, NextTrack) r_conflict cs2,
+  (arg(genre of track, Track) $\= arg(genre of track, NextTrack) ->
+    tent_call([Track], BGenre, BGenre is 0)
+    ;
+    tent_call([Track], BGenre, BGenre is 1)
+  ),
+  G tent_is BGenre,
+  tent_call([BGenre], GSum, GSum is BGenre).
+
+genre_help([P, Next|Tail], GSum) :-
+  genre_help([Next|Tail], Res),
+  get_track(P, Track),
+  get_track(Next, NextTrack),
+  arg(genre of track, Track) $\= arg(genre of track, NextTrack) r_conflict cs2,
+  (arg(genre of track, Track) $\= arg(genre of track, NextTrack) ->
+    tent_call([Track], BGenre, BGenre is 0)
+    ;
+    tent_call([Track], BGenre, BGenre is 1)
+  ),
+  G tent_is BGenre,
+
+  tent_call([BGenre, Res], GSum, GSum is BGenre + Res).
+
+genre_constraint_setup(Indices, Tracks, GSum) :-
+  get_playback(Indices, Tracks, Playback),
+  genre_help(Playback, GSum).
 
 %----------------------------------------------------------------------
 % Distance Calculation
