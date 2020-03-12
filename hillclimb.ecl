@@ -92,18 +92,16 @@ hill_climb(Indices, Distances, GenrePairs, Tracks, BSum, GSum, ArtistDistance, C
         update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated),
 
         BSum tent_get NewCost, % Get the new cost
-        GSum tent_get NewGenreCost,
-
-        write("Old: "), write(OldGenreCost), write(" New: "), writeln(NewGenreCost),
+        %% GSum tent_get NewGenreCost,
 
         NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
 
         NewCost < OldCost,
 
         ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, Tracks, GenrePairsUpdated, BSum, GSum, ArtistDistance,  NewCount2, Max, NewCost, Indices, Result, Cost) % Move on with the new order as the best
+          hill_climb(Indices, Updated, GenrePairs, Tracks, BSum, GSum, ArtistDistance,  NewCount2, Max, NewCost, Indices, Result, Cost) % Move on with the new order as the best
         ;
-          hill_climb(Indices, Updated, Tracks, GenrePairsUpdated, BSum, GSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+          hill_climb(Indices, Updated, GenrePairs, Tracks, BSum, GSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
         )
       )
   ).
@@ -191,10 +189,10 @@ is_different(P, Playback, Next, Different) :-
   )
 .
 
-get_next(P, [X,Y|T], Y) :-
+get_next(P, [X,Y|_], Y) :-
   P == X.
 
-get_next(P, [H|T], Y) :-
+get_next(P, [_|T], Y) :-
   get_next(P, T, Y).
 
 get_next(P, [], P).
@@ -262,20 +260,29 @@ recalculate(Position, Playback, ArtistDistance, Distance, NextP) :-
       NextP = position{index: -1} % If there are no more tracks from this artist, set index to -1
   ).
 
+equal(Var1,_,X,true) :-
+  Var1 tent_get T1,
+  X tent_get T2,
+  T1 == T2.
+equal(_,Var2,X,true) :-
+  Var2 tent_get T1,
+  X tent_get T2,
+  T1 == T2.
+equal(_,_,_,false).
+
 update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated) :-
   get_playback(Indices, Tracks, Playback),
-  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback) do
-    get_first_from_genre(Pair, First), %% TODO: Get index, which should be compared against Var1/Var2
-    ( First == Var1 || First == Var2 ->
-      %% TODO: Get P
-      is_different(P, Playback, Next, Different),
-      ( Different == true ->
-        TentDifferent tent_set 0,
-        UP = succ_genre{position1: P, position2: Next, TentDifferent}
+  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback, Var1, Var2) do
+    get_first_from_genre(Pair, First),
+    is_different(First, Playback, Next, Different),
+    ( Different == true ->
+        get_different(Pair, Dif),
+        Dif tent_set 0,
+        UP = succ_genre{position1: First, position2: Next, different: Dif}
         ;
-        TentDifferent tent_set 1,
-        UP = succ_genre{position1: P, position2: Next, TentDifferent}
-      )
+        get_different(Pair, Dif),
+        Dif tent_set 1,
+        UP = succ_genre{position1: First, position2: Next, different: Dif}
     )
   )
 .
