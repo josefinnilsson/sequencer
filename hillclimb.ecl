@@ -12,9 +12,10 @@
 % Structs
 %----------------------------------------------------------------------
 
-:- local struct(track(id, artist, duration)).
+:- local struct(track(id, artist, duration, genre)).
 :- local struct(position(index, track, tent)).
 :- local struct(artist_distance(position1, position2, distance)).
+:- local struct(succ_genre(position1, position2, different)).
 
 %----------------------------------------------------------------------
 % Get Functions
@@ -23,14 +24,17 @@
 get_index(position(I,_,_),I).
 get_track(position(_,T,_),T).
 
-get_duration(track(_,_,D),D).
-get_artist(track(_,A,_),A).
+get_duration(track(_,_,D,_),D).
+get_artist(track(_,A,_,_),A).
 
 get_distance(artist_distance(_,_,D),D).
 get_first_position(artist_distance(P,_,_),P).
 get_second_position(artist_distance(_,P,_),P).
+get_first_from_genre(succ_genre(P,_,_),P).
+get_second_from_genre(succ_genre(_,P,_),P).
+get_different(succ_genre(_,_,D),D).
 
-get_id_from_position(position(_, track(ID, _, _), _), ID).
+get_id_from_position(position(_, track(ID, _, _, _), _), ID).
 
 get_tent_index(Position, Tent) :-
   get_index(Position, Index),
@@ -49,7 +53,10 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
   tent_init(Indices), % set initial values for all index
 
   constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
-  hill_climb(Indices, Distances, Tracks, BSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
+  genre_constraint_setup(Indices, Tracks, GSum, GenrePairs),
+  tent_call([GSum, BSum], TotalSum, TotalSum is BSum+GSum),
+
+  hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
   TimeUsed is cputime-StartTime.
 
@@ -63,14 +70,19 @@ get_final_playback(List, Tentative) :-
     L tent_get T
   ).
 
+is_done([], _, true).
+is_done(_, 0, true).
+is_done(_, _, false).
+
 %----------------------------------------------------------------------
 % Hill Climbing
 %----------------------------------------------------------------------
 
-hill_climb(Indices, Distances, Tracks, BSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
+hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
-  BSum tent_get OldCost, % Store the old cost
-  ( List=[] -> % If List is empty, an optimal solution is found
+  TotalSum tent_get OldSum, % Store the old cost
+  is_done(List, OldSum, Done),
+  ( Done == true -> % If the cost is 0, an optimal solution is found
     final(Indices, Tracks, 0, Result, Cost)
   ;
       select_var(List, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
@@ -83,16 +95,22 @@ hill_climb(Indices, Distances, Tracks, BSum, ArtistDistance, Count, Max, BestCos
         ;
         update_distances(Indices, Tracks, Distances, ArtistDistance, Updated), % Recalculate the distances, Updated holds the new Distnaces
 
-        BSum tent_get NewCost, % Get the new cost
+        update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated),
+
+        TotalSum tent_get NewSum, % Get the new cost
 
         NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
 
-        NewCost < OldCost,
+        (NewCount2 > Max ->
+          final(BestIndices, Tracks, BestCost, Result, Cost) % If no more tries are allowed, return solution
+          ;
+          NewSum < OldSum,
 
-        ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, Tracks, BSum, ArtistDistance,  NewCount2, Max, NewCost, Indices, Result, Cost) % Move on with the new order as the best
-        ;
-          hill_climb(Indices, Updated, Tracks, BSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+          ( NewSum < BestCost ->
+            hill_climb(Indices, Updated, GenrePairsUpdated, Tracks, TotalSum, ArtistDistance,  NewCount2, Max, NewSum, Indices, Result, Cost) % Move on with the new order as the best
+          ;
+            hill_climb(Indices, Updated, GenrePairsUpdated, Tracks, TotalSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+          )
         )
       )
   ).
@@ -138,6 +156,61 @@ constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances) :- % Initiali
   ),
   tent_call([AllBs], BSum, BSum is sumlist(AllBs)).
 
+genre_constraint_setup(Indices, Tracks, GSum, GenrePairs) :-
+  calculate_genres(Indices, Tracks, GenrePairs),
+  ( foreach(Pair, GenrePairs), foreach(Score, AllScores) do
+    arg(different of succ_genre, Pair) $= 0 r_conflict cs2,
+    tent_call([Pair], DiffScore, DiffScore is arg(different of succ_genre, Pair)),
+    Score tent_is DiffScore
+  ),
+  tent_call([AllScores], GSum, GSum is sumlist(AllScores)).
+
+%----------------------------------------------------------------------
+% Genre Calculation
+%----------------------------------------------------------------------
+calculate_genres(Indices, Tracks, GenrePairs) :-
+  get_playback(Indices, Tracks, Playback),
+  ( foreach(P, Playback), foreach(Pair, GenrePairs), param(Playback) do
+    is_different(P, Playback, Next, Different),
+    ( Different == true ->
+      TentDifferent tent_set 0,
+      Pair = succ_genre{position1: P, position2: Next, different: TentDifferent} % If they're different
+      ;
+      TentDifferent tent_set 1,
+      Pair = succ_genre{position1: P, position2: Next, different: TentDifferent} % If they're the same
+    )
+  ).
+
+is_different(P, Playback, Next, Different) :-
+  get_next(P, Playback, Next),
+  ( P == Next ->
+    Different = true
+    ;
+    get_track(P, Track),
+    get_track(Next, NextTrack),
+    arg(genre of track, Track, Genre),
+    arg(genre of track, NextTrack, NextGenre),
+    ( Genre $\= NextGenre ->
+      Different = true
+    ;
+      Different = false
+    )
+  )
+.
+
+get_next(P, [P2], P):-
+  get_track(P, T1),
+  get_track(P2, T2),
+  T1 == T2.
+
+get_next(P, [P2,Y|_], Y):-
+  get_track(P, T1),
+  get_track(P2, T2),
+  T1 == T2.
+
+get_next(P, [], P).
+
+get_next(P, [_|T], Y) :- get_next(P,T,Y).
 
 %----------------------------------------------------------------------
 % Distance Calculation
@@ -201,6 +274,34 @@ recalculate(Position, Playback, ArtistDistance, Distance, NextP) :-
       Distance = 0,
       NextP = position{index: -1} % If there are no more tracks from this artist, set index to -1
   ).
+
+equal(Var1,_,X,true) :-
+  Var1 tent_get T1,
+  X tent_get T2,
+  T1 == T2.
+equal(_,Var2,X,true) :-
+  Var2 tent_get T1,
+  X tent_get T2,
+  T1 == T2.
+equal(_,_,_,false).
+
+update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated) :-
+  get_playback(Indices, Tracks, Playback),
+  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback, Var1, Var2) do
+    get_first_from_genre(Pair, First),
+    is_different(First, Playback, Next, Different),!, % TODO: Gör deteministisk
+    ( Different == true ->
+        get_different(Pair, Dif),
+        Dif tent_set 0,
+        UP = succ_genre{position1: First, position2: Next, different: Dif}
+        ;
+        get_different(Pair, Dif),
+        Dif tent_set 1,
+        UP = succ_genre{position1: First, position2: Next, different: Dif}
+    )
+  )
+.
+
 
 %----------------------------------------------------------------------
 % Helper Functions
