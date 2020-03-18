@@ -54,8 +54,9 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
 
   constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   genre_constraint_setup(Indices, Tracks, GSum, GenrePairs),
+  tent_call([GSum, BSum], TotalSum, TotalSum is BSum+GSum),
 
-  hill_climb(Indices, Distances, GenrePairs, Tracks, BSum, GSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
+  hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
   TimeUsed is cputime-StartTime.
 
@@ -73,11 +74,10 @@ get_final_playback(List, Tentative) :-
 % Hill Climbing
 %----------------------------------------------------------------------
 
-hill_climb(Indices, Distances, GenrePairs, Tracks, BSum, GSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
+hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
-  BSum tent_get OldCost, % Store the old cost
-  GSum tent_get OldGenreCost,
-  ( List=[] -> % If List is empty, an optimal solution is found
+  TotalSum tent_get OldSum, % Store the old cost
+  ( OldSum == 0 -> % If the cost is 0, an optimal solution is found
     final(Indices, Tracks, 0, Result, Cost)
   ;
       select_var(List, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
@@ -89,19 +89,23 @@ hill_climb(Indices, Distances, GenrePairs, Tracks, BSum, GSum, ArtistDistance, C
         final(BestIndices, Tracks, BestCost, Result, Cost) % If no more tries are allowed, return solution
         ;
         update_distances(Indices, Tracks, Distances, ArtistDistance, Updated), % Recalculate the distances, Updated holds the new Distnaces
+
         update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated),
 
-        BSum tent_get NewCost, % Get the new cost
-        %% GSum tent_get NewGenreCost,
+        TotalSum tent_get NewSum, % Get the new cost
 
         NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
 
-        NewCost < OldCost,
+        (NewCount2 > Max ->
+          final(BestIndices, Tracks, BestCost, Result, Cost) % If no more tries are allowed, return solution
+          ;
+          NewSum < OldSum,
 
-        ( NewCost < BestCost ->
-          hill_climb(Indices, Updated, GenrePairs, Tracks, BSum, GSum, ArtistDistance,  NewCount2, Max, NewCost, Indices, Result, Cost) % Move on with the new order as the best
-        ;
-          hill_climb(Indices, Updated, GenrePairs, Tracks, BSum, GSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+          ( NewSum < BestCost ->
+            hill_climb(Indices, Updated, GenrePairsUpdated, Tracks, TotalSum, ArtistDistance,  NewCount2, Max, NewSum, Indices, Result, Cost) % Move on with the new order as the best
+          ;
+            hill_climb(Indices, Updated, GenrePairsUpdated, Tracks, TotalSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+          )
         )
       )
   ).
@@ -189,13 +193,19 @@ is_different(P, Playback, Next, Different) :-
   )
 .
 
-get_next(P, [X,Y|_], Y) :-
-  P == X.
+get_next(P, [P2], P):-
+  get_track(P, T1),
+  get_track(P2, T2),
+  T1 == T2.
 
-get_next(P, [_|T], Y) :-
-  get_next(P, T, Y).
+get_next(P, [P2,Y|_], Y):-
+  get_track(P, T1),
+  get_track(P2, T2),
+  T1 == T2.
 
 get_next(P, [], P).
+
+get_next(P, [_|T], Y) :- get_next(P,T,Y).
 
 %----------------------------------------------------------------------
 % Distance Calculation
@@ -274,7 +284,7 @@ update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated) :-
   get_playback(Indices, Tracks, Playback),
   ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback, Var1, Var2) do
     get_first_from_genre(Pair, First),
-    is_different(First, Playback, Next, Different),
+    is_different(First, Playback, Next, Different),!, % TODO: Gör deteministisk
     ( Different == true ->
         get_different(Pair, Dif),
         Dif tent_set 0,
