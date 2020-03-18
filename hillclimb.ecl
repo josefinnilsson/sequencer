@@ -95,7 +95,7 @@ hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Cou
         ;
         update_distances(Indices, Tracks, Distances, ArtistDistance, Updated), % Recalculate the distances, Updated holds the new Distnaces
 
-        update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated),
+        update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated),
 
         TotalSum tent_get NewSum, % Get the new cost
 
@@ -285,9 +285,9 @@ equal(_,Var2,X,true) :-
   T1 == T2.
 equal(_,_,_,false).
 
-update_genres(Indices, Tracks, GenrePairs, Var1, Var2, GenrePairsUpdated) :-
+update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated) :-
   get_playback(Indices, Tracks, Playback),
-  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback, Var1, Var2) do
+  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback) do
     get_first_from_genre(Pair, First),
     is_different(First, Playback, Next, Different),!, % TODO: Gör deteministisk
     ( Different == true ->
