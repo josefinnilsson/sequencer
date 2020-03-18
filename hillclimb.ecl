@@ -70,6 +70,10 @@ get_final_playback(List, Tentative) :-
     L tent_get T
   ).
 
+is_done([], _, true).
+is_done(_, 0, true).
+is_done(_, _, false).
+
 %----------------------------------------------------------------------
 % Hill Climbing
 %----------------------------------------------------------------------
@@ -77,7 +81,8 @@ get_final_playback(List, Tentative) :-
 hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
   TotalSum tent_get OldSum, % Store the old cost
-  ( OldSum == 0 -> % If the cost is 0, an optimal solution is found
+  is_done(List, OldSum, Done),
+  ( Done == true -> % If the cost is 0, an optimal solution is found
     final(Indices, Tracks, 0, Result, Cost)
   ;
       select_var(List, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
