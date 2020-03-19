@@ -16,6 +16,7 @@
 :- local struct(position(index, track, tent)).
 :- local struct(artist_distance(position1, position2, distance)).
 :- local struct(succ_genre(position1, position2, different)).
+:- local struct(popularity(index, popular)).
 
 %----------------------------------------------------------------------
 % Get Functions
@@ -26,6 +27,7 @@ get_track(position(_,T,_),T).
 
 get_duration(track(_,_,D,_,_,_),D).
 get_artist(track(_,A,_,_,_,_),A).
+get_popularity(track(_,_,_,_,_,P),P).
 
 get_distance(artist_distance(_,_,D),D).
 get_first_position(artist_distance(P,_,_),P).
@@ -54,10 +56,10 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
 
   constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   genre_constraint_setup(Indices, Tracks, GSum, GenrePairs),
-  popularity_constraint_setup(Indices, Tracks, PopularityScore),
+  popularity_constraint_setup(Indices, Tracks, PopularityScore, Popularities),
   tent_call([GSum, BSum, PopularityScore], TotalSum, TotalSum is BSum+GSum+PopularityScore),
 
-  hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
+  hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
   TimeUsed is cputime-StartTime.
 
@@ -79,7 +81,7 @@ is_done(_, _, false).
 % Hill Climbing
 %----------------------------------------------------------------------
 
-hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
+hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
   TotalSum tent_get OldSum, % Store the old cost
   is_done(List, OldSum, Done),
@@ -98,6 +100,8 @@ hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Cou
 
         update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated),
 
+        update_popularities(Indices, Tracks, Popularities, PopularitiesUpdated),
+
         TotalSum tent_get NewSum, % Get the new cost
 
         NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
@@ -108,9 +112,9 @@ hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, Cou
           NewSum < OldSum,
 
           ( NewSum < BestCost ->
-            hill_climb(Indices, Updated, GenrePairsUpdated, Tracks, TotalSum, ArtistDistance,  NewCount2, Max, NewSum, Indices, Result, Cost) % Move on with the new order as the best
+            hill_climb(Indices, Updated, GenrePairsUpdated, Popularities, Tracks, TotalSum, ArtistDistance,  NewCount2, Max, NewSum, Indices, Result, Cost) % Move on with the new order as the best
           ;
-            hill_climb(Indices, Updated, GenrePairsUpdated, Tracks, TotalSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+            hill_climb(Indices, Updated, GenrePairsUpdated, Popularities, Tracks, TotalSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
           )
         )
       )
@@ -172,7 +176,16 @@ fifth([_,_,_,_,X|_], X).
 seventh([_,_,_,_,_,X|_], X).
 ninth([_,_,_,_,_,_,_,_,X|_], X).
 
-popularity_constraint_setup(Indices, Tracks, PopularityScore) :-
+popularity_constraint_setup(Indices, Tracks, PopularityScore, Popularities) :-
+  calculate_popularity(Indices, Tracks, Popularities),
+  ( foreach(Popularity, Popularities), foreach(Score, AllScores) do
+    arg(popular of popularity, Popularity) $= 0 r_conflict cs3,
+    tent_call([Popularity], PopScore, PopScore is arg(popular of popularity, Popularity)),
+    Score tent_is PopScore
+  ),
+  tent_call([AllScores], PopularityScore, PopularityScore is sumlist(AllScores)).
+
+calculate_popularity(Indices, Tracks, Popularities) :-
   get_playback(Indices, Tracks, Playback),
   first(Playback, First),
   third(Playback, Third),
@@ -180,18 +193,18 @@ popularity_constraint_setup(Indices, Tracks, PopularityScore) :-
   %% seventh(Playback, Seventh),
   %% ninth(Playback, Ninth),
 
-  (foreach(X, [First, Third, Fifth]), foreach(Score, AllScores) do
+  (foreach(X, [First, Third, Fifth]), foreach(Popularity, Popularities) do
     get_track(X, Track),
-    arg(popularity of track, Track) $>= 70 r_conflict cs3,
-    arg(popularity of track, Track, Popularity),
-    ( Popularity >= 70 ->
-      Score tent_is 0
+    get_index(X, Index),
+    get_popularity(Track, Pop),
+    ( Pop >= 70 ->
+      TentPopular tent_set 0,
+      Popularity = popularity{index: Index, popular: TentPopular}
       ;
-      Score tent_is 1
+      TentPopular tent_set 1,
+      Popularity = popularity{index: Index, popular: TentPopular}
     )
-  ),
-  tent_call([AllScores], PopularityScore, PopularityScore is sumlist(AllScores))
-  .
+  ).
 
 %----------------------------------------------------------------------
 % Genre Calculation
@@ -329,6 +342,26 @@ update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated) :-
     )
   )
 .
+
+update_popularities(Indices, Tracks, Popularities, PopularitiesUpdated) :-
+  get_playback(Indices, Tracks, Playback),
+  first(Playback, First),
+  third(Playback, Third),
+  fifth(Playback, Fifth),
+  ( foreach(X, [First, Third, Fifth]), foreach(Popularity, Popularities), foreach(UP, PopularitiesUpdated), param(Playback) do
+    get_track(X, Track),
+    get_index(X, Index),
+    get_popularity(Track, Pop),
+    ( Pop >= 70 ->
+      arg(2, Popularity, P),
+      P tent_set 0,
+      UP = popularity{index: Index, popular: P}
+      ;
+      arg(2, Popularity, P),
+      P tent_set 1,
+      UP = popularity{index: Index, popular: P}
+    )
+  ).
 
 
 %----------------------------------------------------------------------
