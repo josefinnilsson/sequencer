@@ -55,8 +55,7 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
   constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   genre_constraint_setup(Indices, Tracks, GSum, GenrePairs),
   popularity_constraint_setup(Indices, Tracks, PopularityScore),
-  write("Pop score: "), writeln(PopularityScore),
-  tent_call([GSum, BSum], TotalSum, TotalSum is BSum+GSum),
+  tent_call([GSum, BSum, PopularityScore], TotalSum, TotalSum is BSum+GSum+PopularityScore),
 
   hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
