@@ -54,6 +54,8 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
 
   constraint_setup(Indices, Tracks, BSum, ArtistDistance, Distances), % BSum will keep track of the total cost for the sequence, the sum of distances to threshold
   genre_constraint_setup(Indices, Tracks, GSum, GenrePairs),
+  popularity_constraint_setup(Indices, Tracks, PopularityScore),
+  write("Pop score: "), writeln(PopularityScore),
   tent_call([GSum, BSum], TotalSum, TotalSum is BSum+GSum),
 
   hill_climb(Indices, Distances, GenrePairs, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
@@ -164,6 +166,33 @@ genre_constraint_setup(Indices, Tracks, GSum, GenrePairs) :-
     Score tent_is DiffScore
   ),
   tent_call([AllScores], GSum, GSum is sumlist(AllScores)).
+
+first([X|_], X).
+third([_,_,X|_], X).
+fifth([_,_,_,_,X|_], X).
+seventh([_,_,_,_,_,X|_], X).
+ninth([_,_,_,_,_,_,_,_,X|_], X).
+
+popularity_constraint_setup(Indices, Tracks, PopularityScore) :-
+  get_playback(Indices, Tracks, Playback),
+  first(Playback, First),
+  third(Playback, Third),
+  fifth(Playback, Fifth),
+  %% seventh(Playback, Seventh),
+  %% ninth(Playback, Ninth),
+
+  (foreach(X, [First, Third, Fifth]), foreach(Score, AllScores) do
+    get_track(X, Track),
+    arg(popularity of track, Track) $>= 70 r_conflict cs3,
+    arg(popularity of track, Track, Popularity),
+    ( Popularity >= 70 ->
+      Score tent_is 0
+      ;
+      Score tent_is 1
+    )
+  ),
+  tent_call([AllScores], PopularityScore, PopularityScore is sumlist(AllScores))
+  .
 
 %----------------------------------------------------------------------
 % Genre Calculation
