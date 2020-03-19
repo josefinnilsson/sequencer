@@ -185,27 +185,6 @@ popularity_constraint_setup(Indices, Tracks, PopularityScore, Popularities) :-
   ),
   tent_call([AllScores], PopularityScore, PopularityScore is sumlist(AllScores)).
 
-calculate_popularity(Indices, Tracks, Popularities) :-
-  get_playback(Indices, Tracks, Playback),
-  first(Playback, First),
-  third(Playback, Third),
-  fifth(Playback, Fifth),
-  %% seventh(Playback, Seventh),
-  %% ninth(Playback, Ninth),
-
-  (foreach(X, [First, Third, Fifth]), foreach(Popularity, Popularities) do
-    get_track(X, Track),
-    get_index(X, Index),
-    get_popularity(Track, Pop),
-    ( Pop >= 70 ->
-      TentPopular tent_set 0,
-      Popularity = popularity{index: Index, popular: TentPopular}
-      ;
-      TentPopular tent_set 1,
-      Popularity = popularity{index: Index, popular: TentPopular}
-    )
-  ).
-
 %----------------------------------------------------------------------
 % Genre Calculation
 %----------------------------------------------------------------------
@@ -252,6 +231,23 @@ get_next(P, [P2,Y|_], Y):-
 get_next(P, [], P).
 
 get_next(P, [_|T], Y) :- get_next(P,T,Y).
+
+update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated) :-
+  get_playback(Indices, Tracks, Playback),
+  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback) do
+    get_first_from_genre(Pair, First),
+    is_different(First, Playback, Next, Different),!, % TODO: Gör deteministisk
+    ( Different == true ->
+        get_different(Pair, Dif),
+        Dif tent_set 0,
+        UP = succ_genre{position1: First, position2: Next, different: Dif}
+        ;
+        get_different(Pair, Dif),
+        Dif tent_set 1,
+        UP = succ_genre{position1: First, position2: Next, different: Dif}
+    )
+  )
+.
 
 %----------------------------------------------------------------------
 % Distance Calculation
@@ -316,39 +312,41 @@ recalculate(Position, Playback, ArtistDistance, Distance, NextP) :-
       NextP = position{index: -1} % If there are no more tracks from this artist, set index to -1
   ).
 
-equal(Var1,_,X,true) :-
-  Var1 tent_get T1,
-  X tent_get T2,
-  T1 == T2.
-equal(_,Var2,X,true) :-
-  Var2 tent_get T1,
-  X tent_get T2,
-  T1 == T2.
-equal(_,_,_,false).
 
-update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated) :-
+%----------------------------------------------------------------------
+% Popularity Calculation
+%----------------------------------------------------------------------
+
+calculate_popularity(Indices, Tracks, Popularities) :-
   get_playback(Indices, Tracks, Playback),
-  ( foreach(Pair, GenrePairs), foreach(UP, GenrePairsUpdated), param(Playback) do
-    get_first_from_genre(Pair, First),
-    is_different(First, Playback, Next, Different),!, % TODO: Gör deteministisk
-    ( Different == true ->
-        get_different(Pair, Dif),
-        Dif tent_set 0,
-        UP = succ_genre{position1: First, position2: Next, different: Dif}
-        ;
-        get_different(Pair, Dif),
-        Dif tent_set 1,
-        UP = succ_genre{position1: First, position2: Next, different: Dif}
+  first(Playback, First),
+  third(Playback, Third),
+  fifth(Playback, Fifth),
+  seventh(Playback, Seventh),
+  ninth(Playback, Ninth),
+
+  (foreach(X, [First, Third, Fifth, Seventh, Ninth]), foreach(Popularity, Popularities) do
+    get_track(X, Track),
+    get_index(X, Index),
+    get_popularity(Track, Pop),
+    ( Pop >= 70 ->
+      TentPopular tent_set 0,
+      Popularity = popularity{index: Index, popular: TentPopular}
+      ;
+      TentPopular tent_set 1,
+      Popularity = popularity{index: Index, popular: TentPopular}
     )
-  )
-.
+  ).
+
 
 update_popularities(Indices, Tracks, Popularities, PopularitiesUpdated) :-
   get_playback(Indices, Tracks, Playback),
   first(Playback, First),
   third(Playback, Third),
   fifth(Playback, Fifth),
-  ( foreach(X, [First, Third, Fifth]), foreach(Popularity, Popularities), foreach(UP, PopularitiesUpdated), param(Playback) do
+  seventh(Playback, Seventh),
+  ninth(Playback, Ninth),
+  ( foreach(X, [First, Third, Fifth, Seventh, Ninth]), foreach(Popularity, Popularities), foreach(UP, PopularitiesUpdated), param(Playback) do
     get_track(X, Track),
     get_index(X, Index),
     get_popularity(Track, Pop),
