@@ -73,9 +73,9 @@ get_final_playback(List, Tentative) :-
     L tent_get T
   ).
 
-is_done([], _, true).
-is_done(_, 0, true).
-is_done(_, _, false).
+is_done([],[],[],_,true).
+is_done(_,_,_,0,true).
+is_done(_,_,_,_,false).
 
 %----------------------------------------------------------------------
 % Hill Climbing
@@ -83,12 +83,14 @@ is_done(_, _, false).
 
 hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, ArtistDistance, Count, Max, BestCost, BestIndices, Result, Cost) :-
   conflict_constraints(cs, List), % List will include current conflicting constraints
+  conflict_constraints(cs2, List2),
+  conflict_constraints(cs3, List3),
   TotalSum tent_get OldSum, % Store the old cost
-  is_done(List, OldSum, Done),
+  is_done(List, List2, List3, OldSum, Done),
   ( Done == true -> % If the cost is 0, an optimal solution is found
     final(Indices, Tracks, 0, Result, Cost)
   ;
-      select_var(List, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
+      select_var(List, List2, List3, Var1), % Choose an arbitrary variable from an arbitrary conflicting constraint
       select_other_var(Indices, Var1, Var2), % Select a random variable to swap with
       swap(Var1, Var2), % Swap the two variables
 
@@ -97,13 +99,8 @@ hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, Artis
         final(BestIndices, Tracks, BestCost, Result, Cost) % If no more tries are allowed, return solution
         ;
         update_distances(Indices, Tracks, Distances, ArtistDistance, Updated), % Recalculate the distances, Updated holds the new Distnaces
-
-        update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated),
-
         update_popularities(Indices, Tracks, Popularities, PopularitiesUpdated),
-
         TotalSum tent_get NewSum, % Get the new cost
-
         NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
 
         (NewCount2 > Max ->
@@ -112,25 +109,44 @@ hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, Artis
           NewSum < OldSum,
 
           ( NewSum < BestCost ->
-            hill_climb(Indices, Updated, GenrePairsUpdated, Popularities, Tracks, TotalSum, ArtistDistance,  NewCount2, Max, NewSum, Indices, Result, Cost) % Move on with the new order as the best
+            hill_climb(Indices, Updated, GenrePairsUpdated, PopularitiesUpdated, Tracks, TotalSum, ArtistDistance,  NewCount2, Max, NewSum, Indices, Result, Cost) % Move on with the new order as the best
           ;
-            hill_climb(Indices, Updated, GenrePairsUpdated, Popularities, Tracks, TotalSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
+            hill_climb(Indices, Updated, GenrePairsUpdated, PopularitiesUpdated, Tracks, TotalSum, ArtistDistance, NewCount2, Max, BestCost, BestIndices, Result, Cost) % Move on with the old order as the best
           )
         )
       )
   ).
 
-
 %----------------------------------------------------------------------
 % Swapping
 %----------------------------------------------------------------------
 
-select_var(List, Index) :-
+select_var(List,_,_,Index) :-
+  length(List, N),
+  N > 0,
   member(Constraint, List), % Choose one of the conflicting constraints
   arg(1, Constraint, Res),
   arg(2, Res, ArtistDistance),
   arg(1, ArtistDistance, Var),
   arg(1, Var, Index). % Get the first index involved in the constraint
+
+select_var(_,List,_,Index) :-
+  length(List, N),
+  N > 0,
+  member(Constraint, List), % Choose one of the conflicting constraints
+  arg(1, Constraint, Res),
+  arg(2, Res, SuccGenre),
+  arg(1, SuccGenre, Var),
+  arg(1, Var, Index).
+
+select_var(_,_,List,Index) :-
+  length(List, N),
+  N > 0,
+  member(Constraint, List), % Choose one of the conflicting constraints
+  arg(1, Constraint, Res),
+  arg(2, Res, Popularity),
+  arg(1, Popularity, Index).
+
 
 select_other_var(Indices, Var1, Var2) :- % TODO: Optimise
   random_element(Indices, Var2),
