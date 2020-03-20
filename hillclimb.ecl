@@ -363,7 +363,7 @@ update_popularities(Indices, Tracks, Popularities, PopularitiesUpdated) :-
   fifth(Playback, Fifth),
   seventh(Playback, Seventh),
   ninth(Playback, Ninth),
-  ( foreach(X, [First, Third, Fifth, Seventh, Ninth]), foreach(Popularity, Popularities), foreach(UP, PopularitiesUpdated), param(Playback) do
+  ( foreach(X, [First, Third, Fifth, Seventh, Ninth]), foreach(Popularity, Popularities), foreach(UP, PopularitiesUpdated) do
     get_track(X, Track),
     get_index(X, Index),
     get_popularity(Track, Pop),
