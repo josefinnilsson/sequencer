@@ -99,6 +99,7 @@ hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, Artis
         final(BestIndices, Tracks, BestCost, Result, Cost) % If no more tries are allowed, return solution
         ;
         update_distances(Indices, Tracks, Distances, ArtistDistance, Updated), % Recalculate the distances, Updated holds the new Distnaces
+        update_genres(Indices, Tracks, GenrePairs, GenrePairsUpdated),
         update_popularities(Indices, Tracks, Popularities, PopularitiesUpdated),
         TotalSum tent_get NewSum, % Get the new cost
         NewCount2 is NewCount + 1, % Increment the count again (because of multiple swaps) TODO: Make cleaner
