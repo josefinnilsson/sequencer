@@ -191,7 +191,7 @@ genre_constraint_setup(Indices, Tracks, GSum, GenrePairs) :-
 first([X|_], X).
 third([_,_,X|_], X).
 fifth([_,_,_,_,X|_], X).
-seventh([_,_,_,_,_,X|_], X).
+seventh([_,_,_,_,_,_,X|_], X).
 ninth([_,_,_,_,_,_,_,_,X|_], X).
 
 popularity_constraint_setup(Indices, Tracks, PopularityScore, Popularities) :-
