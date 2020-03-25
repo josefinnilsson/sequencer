@@ -61,6 +61,7 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
 
   hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
+  statistics,
   TimeUsed is cputime-StartTime.
 
 final(Indices, Tracks, BestCost, Result, Cost):- % When the final playback is found
