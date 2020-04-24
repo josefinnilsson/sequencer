@@ -47,7 +47,7 @@ get_tent_index(position(-1,_,_),-1).
 % Shuffler
 %----------------------------------------------------------------------
 
-shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
+shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed, Stack) :-
   cputime(StartTime),
 
   length(Tracks, N),
@@ -59,9 +59,9 @@ shuffler(Tracks, ArtistDistance, Result, Cost, TimeUsed) :-
   popularity_constraint_setup(Indices, Tracks, PopularityScore, Popularities),
   tent_call([GSum, BSum, PopularityScore], TotalSum, TotalSum is BSum+GSum+PopularityScore),
 
-  hill_climb(Indices, Distances, GenrePairs, Popularities, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
+  hill_climb(Indices, Distances, GenrePairs,Popularities, Tracks, TotalSum, ArtistDistance, 0, 10, 9999, Indices, Result, Cost),!,
 
-  statistics,
+  statistics(global_stack_used, Stack),
   TimeUsed is cputime-StartTime.
 
 final(Indices, Tracks, BestCost, Result, Cost):- % When the final playback is found
